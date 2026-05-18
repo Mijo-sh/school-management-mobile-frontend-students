@@ -12,8 +12,8 @@ class AppRouter {
       ),
 
       GoRoute(
-          path: RouteName.onboarding,
-          builder: (context, state) => Placeholder()
+        path: RouteName.onboarding,
+        builder: (context, state) => Placeholder()
       ),
     ]
   );
