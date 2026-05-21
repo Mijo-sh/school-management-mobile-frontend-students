@@ -3,12 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
-/// Use it in a [MaterialApp] like this:
-/// MaterialApp(
-///   theme: AppTheme.light,
-///   darkTheme: AppTheme.dark,
-/// );
-
 abstract final class AppTheme {
   static ThemeData light = FlexThemeData.light(
     colors: const FlexSchemeColor(
