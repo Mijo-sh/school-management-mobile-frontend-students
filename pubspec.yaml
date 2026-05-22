@@ -19,6 +19,7 @@ dependencies:
   equatable: ^2.0.7
   flex_color_scheme: ^8.4.0
   flutter_bloc: ^9.1.1
+  flutter_localization: ^0.3.3
   get_it: ^9.2.0
   go_router: ^17.0.0
   http: ^1.6.0
@@ -35,6 +36,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/lang/
 
   # example:
   # fonts:

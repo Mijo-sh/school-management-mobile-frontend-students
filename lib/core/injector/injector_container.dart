@@ -1,9 +1,15 @@
+import '../../features/language/data/data_sources/language_local_data_source.dart';
+import '../../features/language/data/repositories/language_repository_impl.dart';
+import '../../features/language/domain/use_cases/save_language_use_case.dart';
+import '../../features/language/domain/repositories/language_repository.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import '../../features/language/domain/use_cases/get_language_use_case.dart';
 import '../../features/theme/data/data_sources/theme_local_data_source.dart';
 import '../../features/theme/data/repositories/theme_repository_impl.dart';
 import '../../features/theme/domain/use_cases/save_theme_use_case.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
 import '../../features/theme/domain/use_cases/get_theme_use_case.dart';
+import '../../features/language/presentation/bloc/language_bloc.dart';
 import '../../features/theme/presentation/bloc/theme_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -39,4 +45,19 @@ Future<void> init() async {
 
   // Bloc
   di.registerFactory(() => ThemeBloc(getTheme: di(), saveTheme: di()));
+
+  // **********   Language   **********
+  // Data source
+  di.registerLazySingleton<LanguageLocalDataSource>(() => LanguageLocalDataSourceImpl(preferences: di()));
+
+  // Repository
+  di.registerLazySingleton<LanguageRepository>(() => LanguageRepositoryImpl(localDataSource: di()));
+
+  // Use cases
+  di.registerLazySingleton<GetLanguageUseCase>(() => GetLanguageUseCase(repository: di()));
+  di.registerLazySingleton<SaveLanguageUseCase>(() => SaveLanguageUseCase(repository: di()));
+
+  // Bloc
+  di.registerFactory(() => LanguageBloc(getLanguage: di(), saveLanguage: di()));
+
 }
