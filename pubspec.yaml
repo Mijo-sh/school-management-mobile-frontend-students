@@ -1,4 +1,4 @@
-name: school_management_mobile_frontend
+name: school_management_mobile_frontend_students
 description: "A new Flutter project."
 
 publish_to: 'none'
@@ -30,7 +30,16 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  flutter_launcher_icons: ^0.14.4
   flutter_lints: ^6.0.0
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
+  adaptive_icon_foreground: "assets/images/logo.png"
+  adaptive_icon_background: "@color/ic_launcher_bg"
 
 flutter:
   uses-material-design: true
