@@ -1,6 +1,6 @@
 part of 'splash_bloc.dart';
 
-sealed class SplashState extends Equatable {
+abstract class SplashState extends Equatable {
   const SplashState();
 
   @override
@@ -8,3 +8,23 @@ sealed class SplashState extends Equatable {
 }
 
 final class SplashInitial extends SplashState {}
+
+class LoadingSplashState extends SplashState {}
+
+class NavigateSplashState extends SplashState {
+  final SplashDecision decision;
+
+  const NavigateSplashState({required this.decision});
+
+  @override
+  List<Object> get props => [decision];
+}
+
+class ErrorSplashState extends SplashState {
+  final String message;
+
+  const ErrorSplashState({required this.message});
+
+  @override
+  List<Object> get props => [message];
+}

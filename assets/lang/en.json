@@ -1,3 +1,10 @@
 {
-  "app_name" : "School App"
+  "app_name" : "SM Academy",
+
+  "onboarding1_title" : "",
+  "onboarding2_title" : "",
+  "onboarding3_title" : "",
+  "onboarding1_description" : "",
+  "onboarding2_description" : "",
+  "onboarding3_description" : ""
 }

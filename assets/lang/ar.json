@@ -1,3 +1,10 @@
 {
-  "app_name" : "تطبيق مدرسة"
+  "app_name" : "اكاديمية اس ام",
+
+  "onboarding1_title" : "",
+  "onboarding2_title" : "",
+  "onboarding3_title" : "",
+  "onboarding1_description" : "",
+  "onboarding2_description" : "",
+  "onboarding3_description" : ""
 }
