@@ -1,4 +1,5 @@
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'features/auth/presentation/manager/auth_bloc.dart';
 import 'features/language/presentation/bloc/language_bloc.dart';
 import 'features/theme/presentation/bloc/theme_bloc.dart';
 import 'features/theme/domain/enums/theme_type.dart';
@@ -8,6 +9,9 @@ import 'core/injector/injector_container.dart';
 import 'package:flutter/material.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
+
+import 'features/theme/domain/enums/theme_type.dart';
+import 'features/theme/presentation/bloc/theme_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +34,10 @@ class MyApp extends StatelessWidget {
 
         BlocProvider<LanguageBloc>(
           create: (context) => di<LanguageBloc>()..add(GetLanguageEvent())
-        )
+        ),
+        BlocProvider<AuthBloc>(
+          create: (context) => di<AuthBloc>(),
+        ),
       ],
       child: BlocBuilder<LanguageBloc, LanguageState>(
         builder: (context, languageState) {
@@ -48,7 +55,7 @@ class MyApp extends StatelessWidget {
                   Locale('en'),
                   Locale('ar')
                 ],
-                localizationsDelegates: const [
+                localizationsDelegates: [
                   AppLocalization.delegate,
                   GlobalMaterialLocalizations.delegate,
                   GlobalWidgetsLocalizations.delegate,
@@ -56,9 +63,10 @@ class MyApp extends StatelessWidget {
                 ]
               );
             }
+
           );
-        }
-      )
+        },
+      ),
     );
   }
 }

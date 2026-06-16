@@ -3,9 +3,10 @@ import '../../features/app_intro/presentation/bloc/splash/splash_bloc.dart';
 import '../../features/app_intro/presentation/pages/onboarding_page.dart';
 import '../../features/app_intro/presentation/pages/splash_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../features/auth/presentation/pages/login_page.dart';
 import '../injector/injector_container.dart';
-import 'package:go_router/go_router.dart';
 import 'route_name.dart';
+import 'package:go_router/go_router.dart';
 
 class AppRouter {
   static final GoRouter appRouter = GoRouter(
@@ -26,6 +27,12 @@ class AppRouter {
           child: const OnboardingPage()
         )
       ),
+      GoRoute(
+        path: '/LoginPage',
+        name: 'LoginPage',
+        builder: (context, state) => const LoginPage(),
+      ),
+
     ]
   );
 }

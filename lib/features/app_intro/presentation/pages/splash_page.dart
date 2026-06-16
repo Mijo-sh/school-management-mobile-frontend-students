@@ -1,5 +1,6 @@
-import '../../../../core/injector/injector_container.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+
+import '../../../../core/injector/injector_container.dart';
 import '../widgets/splash/splash_background_widget.dart';
 import '../widgets/splash/splash_content_widget.dart';
 import '../widgets/splash/splash_version_widget.dart';
