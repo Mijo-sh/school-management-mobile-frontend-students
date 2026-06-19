@@ -20,26 +20,43 @@ import '../../features/theme/domain/use_cases/save_theme_use_case.dart';
 import '../../features/theme/domain/repositories/theme_repository.dart';
 import '../../features/theme/domain/use_cases/get_theme_use_case.dart';
 import '../../features/language/presentation/bloc/language_bloc.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../features/theme/presentation/bloc/theme_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart' as http;
+import '../network/dio_auth_interceptor.dart';
+import '../network/api_endpoints.dart';
 import '../network/network_info.dart';
 import 'package:get_it/get_it.dart';
+import 'package:dio/dio.dart';
 
 final di = GetIt.instance;
 
 Future<void> init() async {
   // ====================   External   ====================
+  final dio = Dio(BaseOptions(
+      baseUrl: ApiEndpoints.baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30)
+  ));
+  dio.interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true
+  ));
+  dio.interceptors.add(di<DioAuthInterceptor>());
+  const secureStorage = FlutterSecureStorage();
   final sharedPreferences = await SharedPreferences.getInstance();
 
-  di.registerLazySingleton(() => sharedPreferences);
-  di.registerLazySingleton<http.Client>(() => http.Client());
+  di.registerLazySingleton<Dio>(() => dio);
+  di.registerLazySingleton<FlutterSecureStorage>(() => secureStorage);
+  di.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
   di.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
   di.registerLazySingleton<InternetConnectionChecker>(() => InternetConnectionChecker.createInstance());
 
   // ====================   Core   ====================
+  // **********   Network   **********
   di.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(connectionChecker: di()));
+  di.registerLazySingleton<DioAuthInterceptor>(() => DioAuthInterceptor(localDataSource: di()));
 
   // ====================   Features   ====================
   // **********   Theme   **********
@@ -72,7 +89,7 @@ Future<void> init() async {
 
   // **********   app intro   **********
   // Data source
-  di.registerLazySingleton<AppSessionLocalDataSource>(() => AppSessionLocalDataSourceImpl(preferences: di()));
+  di.registerLazySingleton<AppSessionLocalDataSource>(() => AppSessionLocalDataSourceImpl(storage: di()));
 
   // Repository
   di.registerLazySingleton<AppSessionRepository>(() => AppSessionRepositoryImpl(localDataSource: di()));
@@ -89,4 +106,5 @@ Future<void> init() async {
   // Bloc
   di.registerFactory(() => SplashBloc(getAppSession: di(), decider: di()));
   di.registerFactory(() => OnboardingBloc(completeOnboarding: di()));
+
 }

@@ -1,10 +1,32 @@
 {
   "app_name" : "SM Academy",
 
+  "onboarding_skip" : "Skip",
   "onboarding1_title" : "",
   "onboarding2_title" : "",
   "onboarding3_title" : "",
   "onboarding1_description" : "",
   "onboarding2_description" : "",
-  "onboarding3_description" : ""
+  "onboarding3_description" : "",
+
+  "month_january" : "January",
+  "month_february" : "February",
+  "month_march" : "March",
+  "month_april" : "April",
+  "month_may" : "May",
+  "month_june" : "June",
+  "month_july" : "July",
+  "month_august" : "August",
+  "month_september" : "September",
+  "month_october" : "October",
+  "month_november" : "November",
+  "month_december" : "December",
+
+  "day_sunday" : "Sun",
+  "day_monday" : "Mon",
+  "day_tuesday" : "Tue",
+  "day_wednesday" : "Wed",
+  "day_thursday" : "Thu",
+  "day_friday" : "Fri",
+  "day_saturday" : "Sat"
 }
