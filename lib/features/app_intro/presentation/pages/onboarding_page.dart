@@ -74,8 +74,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return BlocListener<OnboardingBloc, OnboardingState>(
       listener: (context, state) {
         if(state is SuccessOnboardingState) {
-          // context.go(RouteName.logIn);
-          context.go(RouteName.homeShell);
+          context.go(RouteName.logIn);
         }
         if(state is ErrorOnboardingState) {
           ScaffoldMessenger.of(context).showSnackBar(

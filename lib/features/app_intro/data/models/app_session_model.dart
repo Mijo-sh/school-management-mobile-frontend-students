@@ -27,7 +27,7 @@ class AppSessionModel extends AppSession {
       isPicChoose: json['isPicChoose'],
       token: json['token'],
       tokenExpiresAt: json['tokenExpiresAt'] != null ? DateTime.parse(json['tokenExpiresAt']) : null,
-      role: json['role'] != null ? UserRole.values.byName(json['role']) : null
+      role: json['role'] != null ? UserRoleX.fromString(json['role']) : null
     );
   }
 
@@ -37,7 +37,7 @@ class AppSessionModel extends AppSession {
       'isPicChoose': isPicChoose,
       'token': token,
       'tokenExpiresAt': tokenExpiresAt?.toIso8601String(),
-      'role': role?.name
+      'role': role?.name.toUpperCase()
     };
   }
 
