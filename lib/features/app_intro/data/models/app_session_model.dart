@@ -1,9 +1,9 @@
 import '../../domain/entities/app_session.dart';
 import '../../domain/enums/user_role.dart';
+import 'dart:convert';
 
 class AppSessionModel extends AppSession {
   const AppSessionModel({
-    required super.isAuthenticated,
     required super.isOnboardingCompleted,
     required super.isPicChoose,
     super.token,
@@ -13,7 +13,6 @@ class AppSessionModel extends AppSession {
 
   factory AppSessionModel.fromEntity(AppSession entity) {
     return AppSessionModel(
-      isAuthenticated: entity.isAuthenticated,
       isOnboardingCompleted: entity.isOnboardingCompleted,
       isPicChoose: entity.isPicChoose,
       token: entity.token,
@@ -24,7 +23,6 @@ class AppSessionModel extends AppSession {
 
   factory AppSessionModel.fromJson(Map<String, dynamic> json) {
     return AppSessionModel(
-      isAuthenticated: json['isAuthenticated'],
       isOnboardingCompleted: json['isOnboardingCompleted'],
       isPicChoose: json['isPicChoose'],
       token: json['token'],
@@ -35,7 +33,6 @@ class AppSessionModel extends AppSession {
 
   Map<String, dynamic> toJson() {
     return {
-      'isAuthenticated': isAuthenticated,
       'isOnboardingCompleted': isOnboardingCompleted,
       'isPicChoose': isPicChoose,
       'token': token,
@@ -43,4 +40,9 @@ class AppSessionModel extends AppSession {
       'role': role?.name
     };
   }
+
+  String toJsonString() => jsonEncode(toJson());
+
+  factory AppSessionModel.fromJsonString(String source) =>
+    AppSessionModel.fromJson(jsonDecode(source) as Map<String, dynamic>);
 }

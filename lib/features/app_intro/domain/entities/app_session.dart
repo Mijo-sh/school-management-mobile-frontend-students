@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 import '../enums/user_role.dart';
 
 class AppSession extends Equatable {
-  final bool isAuthenticated;
   final bool isOnboardingCompleted;
   final bool isPicChoose;
   final String? token;
@@ -10,7 +9,6 @@ class AppSession extends Equatable {
   final UserRole? role;
 
   const AppSession({
-    required this.isAuthenticated,
     required this.isOnboardingCompleted,
     required this.isPicChoose,
     this.token,
@@ -19,7 +17,6 @@ class AppSession extends Equatable {
   });
 
   AppSession copyWith({
-    bool? isAuthenticated,
     bool? isOnboardingCompleted,
     bool? isPicChoose,
     String? token,
@@ -27,7 +24,6 @@ class AppSession extends Equatable {
     UserRole? role
   }) {
     return AppSession(
-      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       isOnboardingCompleted: isOnboardingCompleted ?? this.isOnboardingCompleted,
       isPicChoose: isPicChoose ?? this.isPicChoose,
       token: token ?? this.token,
@@ -35,6 +31,8 @@ class AppSession extends Equatable {
       role: role ?? this.role
     );
   }
+
+  bool get isAuthenticated => token != null && !isTokenExpired;
 
   bool get isTokenExpired {
     if (tokenExpiresAt == null) {
@@ -45,7 +43,6 @@ class AppSession extends Equatable {
 
   @override
   List<Object?> get props => [
-    isAuthenticated,
     isOnboardingCompleted,
     isPicChoose,
     token,

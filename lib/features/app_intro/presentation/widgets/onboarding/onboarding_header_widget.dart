@@ -1,3 +1,4 @@
+import '../../../../../core/localization/app_localization.dart';
 import '../../../../../core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
@@ -23,7 +24,7 @@ class OnboardingHeaderWidget extends StatelessWidget {
           TextButton(
             onPressed: onSkip,
             child: Text(
-              "skip",
+              "onboarding_skip".tr(context),
               style: TextStyle(
                 color: AppColors.white,
                 fontSize: 20
