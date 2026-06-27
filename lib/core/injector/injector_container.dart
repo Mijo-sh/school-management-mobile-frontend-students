@@ -33,30 +33,31 @@ import 'package:dio/dio.dart';
 final di = GetIt.instance;
 
 Future<void> init() async {
-  // ====================   External   ====================
-  final dio = Dio(BaseOptions(
-      baseUrl: ApiEndpoints.baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30)
-  ));
-  dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true
-  ));
-  dio.interceptors.add(di<DioAuthInterceptor>());
-  const secureStorage = FlutterSecureStorage();
-  final sharedPreferences = await SharedPreferences.getInstance();
-
-  di.registerLazySingleton<Dio>(() => dio);
-  di.registerLazySingleton<FlutterSecureStorage>(() => secureStorage);
-  di.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
-  di.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
-  di.registerLazySingleton<InternetConnectionChecker>(() => InternetConnectionChecker.createInstance());
-
   // ====================   Core   ====================
   // **********   Network   **********
   di.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(connectionChecker: di()));
   di.registerLazySingleton<DioAuthInterceptor>(() => DioAuthInterceptor(localDataSource: di()));
+
+  // ====================   External   ====================
+  const secureStorage = FlutterSecureStorage();
+  final sharedPreferences = await SharedPreferences.getInstance();
+  di.registerLazySingleton(() {
+    final dio = Dio(BaseOptions(
+      baseUrl: ApiEndpoints.baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30)
+    ));
+    dio.interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true
+    ));
+    dio.interceptors.add(di<DioAuthInterceptor>());
+    return dio;
+  });
+  di.registerLazySingleton<FlutterSecureStorage>(() => secureStorage);
+  di.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
+  di.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
+  di.registerLazySingleton<InternetConnectionChecker>(() => InternetConnectionChecker.createInstance());
 
   // ====================   Features   ====================
   // **********   Theme   **********
