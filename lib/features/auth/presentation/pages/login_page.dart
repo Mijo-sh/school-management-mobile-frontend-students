@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../presentation/manager/auth_bloc.dart';
-import '../widgets/log_in_header.dart';
+import '../../../../core/assets_manager/images_manager.dart';
+import '../manager/auth_bloc.dart';
+import '../widgets/auth_widget.dart';
+import '../widgets/verify_widget.dart';
 import 'otp_dailog.dart';
 
 class LoginPage extends StatefulWidget {
@@ -11,239 +14,186 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _phoneController = TextEditingController();
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
+  static const int _localDigits = 9;
+
+  final _phoneController = TextEditingController();
+
+  late final AnimationController _animController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
+
+  late final Animation<double> _fade =
+  CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, 0.08),
+    end: Offset.zero,
+  ).animate(
+    CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _animController.forward();
+    _phoneController.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
+    _animController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
 
+
+  String get _fullPhone => '0${_phoneController.text.trim()}';
+
   void _onSendPressed() {
-    final phone = _phoneController.text.trim();
-    if (phone.length != 9) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('رقم الهاتف يجب أن يكون 9 أرقام')),
-      );
+    final raw = _phoneController.text.trim();
+    if (raw.length != _localDigits) {
+      _showSnack(context, 'رقم الهاتف يجب أن يكون $_localDigits أرقام');
       return;
     }
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => BlocProvider.value(
-        value: context.read<AuthBloc>(),
-        child: OtpDialog(phone: phone),
-      ),
-    );
+    FocusScope.of(context).unfocus();
+    context.read<AuthBloc>().add(SendOtpRequested(_fullPhone));
   }
 
   @override
   Widget build(BuildContext context) {
-    final double sh = MediaQuery.of(context).size.height;
-    final double sw = MediaQuery.of(context).size.width;
-    final theme = Theme.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        backgroundColor: theme.colorScheme.primary,
-        body: SingleChildScrollView(
-          // ← يخلي المحتوى يتحرك للأعلى
-          reverse: true, // ← يبدأ من الأسفل فيضمن إن الـ field يبان
-          child: Column(
-            children: [
-              LoginHeaderWidget(height: sh * 0.45),
-              Container(
-                width: double.infinity,
-                constraints: BoxConstraints(minHeight: sh * 0.55),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(40),
-                    topRight: Radius.circular(40),
-                  ),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: sw * 0.07,
-                    left: sw * 0.07,
-                    top: sh * 0.02,
-                    bottom: sh * 0.04,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Text(
-                          'سجل دخولك لتبقى على تواصل معنا',
-                          style: TextStyle(
-                            color:
-                            theme.colorScheme.onSurface,
-                            fontSize: 20,
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      SizedBox(height: sh * 0.07),
-                      Padding(
-                        padding: EdgeInsets.only(right: MediaQuery.of(context).size.height * 0.02),
-                        child: const Text("رقم الهاتف", style: TextStyle(fontSize: 18,letterSpacing: 30),),
-                      ),
-                      SizedBox(height: sh * 0.012),
-                      _RoundedField(
-                        controller: _phoneController,
-                        hint: '911223344',
-                        keyboardType: TextInputType.phone,
-                        prefixIcon: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(width: sw * 0.03),
-                            Icon(Icons.phone,
-                                color: theme.colorScheme.primary, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              '963+',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.7),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '|',
-                              style: TextStyle(
-                                fontSize: 32,
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.2),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 50),
-                      _GradientButton(
-                        label: 'تسجيل دخول',
-                        onPressed: _onSendPressed,
-                      ),
-                      SizedBox(height: sh * 0.03),
-                    ],
-                  ),
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      body: BlocConsumer<AuthBloc, AuthState>(
+        // لا نتفاعل إلا والصفحة هي الظاهرة (نتفادى تكرار الإشعارات بعد الانتقال)
+        listenWhen: (_, __) => ModalRoute.of(context)?.isCurrent ?? true,
+        listener: (context, state) {
+          if (state is OtpSentSuccess) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => BlocProvider.value(
+                  value: context.read<AuthBloc>(),
+                  child: VerificationPage(phoneNumber: _fullPhone),
                 ),
               ),
-            ],
-          ),
-        ),
+            );
+          } else if (state is AuthError) {
+            _showSnack(context, state.message);
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
+          final valid = _phoneController.text.trim().length == _localDigits;
+
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AuthBackground(
+              child: AuthScaffoldBody(
+                fade: _fade,
+                slide: _slide,
+                children: [
+                  const Spacer(flex: 1),
+                   Image.asset(ImagesManager.logo),
+                  const SizedBox(height: 20),
+                  AuthHeaderText(
+                    title: 'أهلاً بك',
+                    subtitle: Text(
+                      'أدخل رقم هاتفك وسنرسل لك رمز تحقق',
+                      style: tt.bodyMedium
+                          ?.copyWith(color: cs.onPrimary.withOpacity(0.85)),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const Spacer(flex: 1),
+                  AuthCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Text('رقم الهاتف', style: tt.titleMedium),
+                        ),
+                        const SizedBox(height: 12),
+                        _PhoneField(controller: _phoneController),
+                        const SizedBox(height: 28),
+                        AuthPrimaryButton(
+                          label: 'إرسال الرمز',
+                          isLoading: isLoading,
+                          enabled: valid,
+                          trailingIcon: Icons.arrow_back_rounded,
+                          onPressed: _onSendPressed,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(flex: 2),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-// ── Rounded text field ────────────────────────────────────────────────────────
-class _RoundedField extends StatelessWidget {
+/// Phone input with a fixed +963 prefix; collects the 9 local digits.
+class _PhoneField extends StatelessWidget {
   final TextEditingController controller;
-  final String hint;
-  final TextInputType keyboardType;
-  final Widget prefixIcon;
-  final bool obscure;
-  final Widget? suffixIcon;
-
-  const _RoundedField({
-    required this.controller,
-    required this.hint,
-    required this.keyboardType,
-    required this.prefixIcon,
-    this.obscure = false,
-    this.suffixIcon,
-  });
+  const _PhoneField({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscure,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-            color: Colors.grey.shade400,
-            fontSize: 14,
-            fontWeight: FontWeight.normal),
-        prefixIcon: prefixIcon,
-        suffixIcon: suffixIcon,
-        filled: true,
-
+    final cs = Theme.of(context).colorScheme;
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.phone,
+        maxLength: 9,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          counterText: '',
+          hintText: '9XX XXX XXX',
+          prefixIcon: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.phone_rounded, size: 20, color: cs.primary),
+                const SizedBox(width: 8),
+                Text(
+                  '+963',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(width: 1, height: 26, color: cs.outlineVariant),
+              ],
+            ),
+          ),
+          prefixIconConstraints:
+          const BoxConstraints(minWidth: 0, minHeight: 0),
+        ),
       ),
     );
   }
 }
 
-// ── Gradient button ───────────────────────────────────────────────────────────
-class _GradientButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-  final bool isLoading;
-
-  const _GradientButton({
-    required this.label,
-    required this.onPressed,
-    this.isLoading = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.primaryContainer,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(35)),
-        ),
-        child: isLoading
-            ? const SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(
-              strokeWidth: 2.5, color: Colors.white),
-        )
-            : const Text(
-          'تسجيل دخول',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
-          ),
-        ),
-      ),
-    );
-  }
+void _showSnack(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+  );
 }

@@ -1,10 +1,14 @@
-// domain/repositories/auth_repository.dart
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../profile/domain/entities/user_entity.dart';
 
 abstract class AuthRepository {
   Future<Either<Failure, String>> sendOtp(String phoneNumber);
-  Future<Either<Failure, UserEntity>> logIn(String phoneNumber, String otpCode);
-  Future<Either<Failure, Unit>> logOut();
+  Future<Either<Failure, String>> resendOtp(String phoneNumber);
+  Future<Either<Failure, UserEntity>> login({
+    required String phoneNumber,
+    required String otp,
+  });
+  Future<Either<Failure, Unit>> logout();
+  Future<Either<Failure, UserEntity?>> getCachedUser();
 }

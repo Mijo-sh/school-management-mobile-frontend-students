@@ -1,346 +1,308 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import '../../../home/presentation/pages/nav.dart';
+import '../../../profile/domain/entities/user_role.dart';
 import '../manager/auth_bloc.dart';
-
-class OtpDialog extends StatefulWidget {
-  final String phone;
-
-  const OtpDialog({super.key, required this.phone});
+import '../widgets/auth_widget.dart';
+import '../../../home/presentation/pages/nav.dart';
+import '../widgets/verify_widget.dart';
+class VerificationPage extends StatefulWidget {
+  final String phoneNumber;
+  const VerificationPage({super.key, required this.phoneNumber});
 
   @override
-  State<OtpDialog> createState() => _OtpDialogState();
+  State<VerificationPage> createState() => _VerificationPageState();
 }
 
-class _OtpDialogState extends State<OtpDialog> {
-  final List<TextEditingController> _controllers =
-  List.generate(5, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(5, (_) => FocusNode());
+class _VerificationPageState extends State<VerificationPage>
+    with SingleTickerProviderStateMixin {
+  // 👇 طول رمز التحقق (من Postman الرمز 5 خانات).
+  static const int _codeLength = 5;
+  static const int _resendSeconds = 30;
 
-  int _secondsRemaining = 30;
-  dynamic _timer;
+  final _codeController = TextEditingController();
+  final _focusNode = FocusNode();
+
+  late final AnimationController _animController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
+  late final Animation<double> _fade =
+  CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, 0.08),
+    end: Offset.zero,
+  ).animate(
+    CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+  );
+
+  Timer? _timer;
+  int _secondsLeft = _resendSeconds;
 
   @override
   void initState() {
     super.initState();
-    context.read<AuthBloc>().add(SendOtpRequested(widget.phone));
+    _animController.forward();
     _startTimer();
-
-    for (int i = 0; i < 5; i++) {
-      _focusNodes[i].addListener(() => _onFocusChange(i));
-    }
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _focusNode.requestFocus());
+    _codeController.addListener(() {
+      setState(() {});
+      if (_codeController.text.length == _codeLength) {
+        _verify();
+      }
+    });
   }
 
-  void _onFocusChange(int i) {
-    if (!_focusNodes[i].hasFocus) return;
-    final firstEmpty = _controllers.indexWhere((c) => c.text.isEmpty);
-    if (firstEmpty != -1 && i > firstEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _focusNodes[firstEmpty].requestFocus();
-      });
-    }
+  void _startTimer() {
+    _timer?.cancel();
+    setState(() => _secondsLeft = _resendSeconds);
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
+      if (_secondsLeft == 0) {
+        t.cancel();
+      } else {
+        setState(() => _secondsLeft--);
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    for (var c in _controllers) c.dispose();
-    for (var n in _focusNodes) n.dispose();
+    _animController.dispose();
+    _codeController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
-  void _startTimer() {
-    _timer?.cancel();
-    setState(() => _secondsRemaining = 30);
-    _timer = Stream.periodic(const Duration(seconds: 1)).listen((_) {
-      if (!mounted) return;
-      setState(() {
-        if (_secondsRemaining > 0) {
-          _secondsRemaining--;
-        } else {
-          _timer?.cancel();
-        }
-      });
-    });
-  }
-
-  void _resend() {
-    for (var c in _controllers) c.clear();
-    _focusNodes[0].requestFocus();
-    context.read<AuthBloc>().add(SendOtpRequested(widget.phone));
-    _startTimer();
-  }
-
   void _verify() {
-    final otp = _controllers.map((c) => c.text).join();
-    if (otp.length < 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('الرجاء إدخال رمز التحقق كاملاً')),
-      );
-      return;
-    }
+    final code = _codeController.text.trim();
+    if (code.length != _codeLength) return;
+    FocusScope.of(context).unfocus();
     context.read<AuthBloc>().add(
-      VerifyOtpRequested(phoneNumber: widget.phone, otpCode: otp),
+      LoginRequested(phoneNumber: widget.phoneNumber, otp: code),
     );
   }
 
-  void _onChanged(int i, String val) {
-    if (val.length == 1 && i < 4) {
-      _focusNodes[i + 1].requestFocus();
-    } else if (val.isEmpty && i > 0) {
-      _focusNodes[i - 1].requestFocus();
-    }
-    setState(() {});
+  void _resend() {
+    context.read<AuthBloc>().add(ResendOtpRequested(widget.phoneNumber));
+    _codeController.clear();
+    _startTimer();
+  }
+  void _goHome(UserRole role) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MainScreen()),
+          (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // اللون البنفسجي الأساسي المأخوذ من تصميمك
-    const Color brandPurple = Color(0xFF6F3CC1);
-    const Color bgGrey = Color(0xFFE5E3EA);
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
 
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is VerifyOtpSuccess) {
-          Navigator.of(context).pop();
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const MainScreen()),
-          );
-        }
-        if (state is VerifyOtpFailure || state is SendOtpFailure) {
-          final msg = state is VerifyOtpFailure
-              ? (state as VerifyOtpFailure).message
-              : (state as SendOtpFailure).message;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), backgroundColor: Colors.red),
-          );
-        }
-      },
-// ... بداية الكود ...
-      child: Dialog(
-        insetAnimationDuration: Duration.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-        backgroundColor: Colors.white,
-        child: SizedBox(
-          width: 295, // عرض ملموم ومتناسق جداً
-          child: Padding(
-            // تقليل الـ padding العلوي والسفلي لضغط الارتفاع
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min, // يضمن كش الارتفاع على قد المحتوى
-              children: [
-                // ── Shield icon (تقليل المسافة تحت الأيقونة) ──
-                const Icon(
-                  Icons.shield,
-                  color: brandPurple,
-                  size: 48, // حجم أصغر ومناسب
-                ),
-                const SizedBox(height: 8),
-                // تقليل المسافة
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      body: BlocConsumer<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is LoginSuccess) {
+            _goHome(state.user.primaryRole);
+          } else if (state is AuthError) {
+            _codeController.clear();
+            _focusNode.requestFocus();
+            _showSnack(context, state.message);
+          } else if (state is OtpSentSuccess) {
+            _showSnack(context, 'تم إرسال الرمز مجدداً');
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
+          final code = _codeController.text;
 
-                // ── Title ────────────────────────
-                const Text(
-                  'Verification',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+          return Directionality(
+            textDirection: TextDirection.rtl,
+            child: AuthBackground(
+              child: AuthScaffoldBody(
+                fade: _fade,
+                slide: _slide,
+                children: [
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: IconButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: Icon(Icons.arrow_forward_rounded,
+                            color: cs.onPrimary),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                // تقليل المسافة
-                Text(
-                  'Enter the 5-digit verification code.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
-                    fontWeight: FontWeight.w500,
+                  const Spacer(flex: 1),
+                  const AuthBadge(icon: Icons.sms_rounded),
+                  const SizedBox(height: 20),
+                  AuthHeaderText(
+                    title: 'تحقق من رقمك',
+                    subtitle: Text.rich(
+                      TextSpan(
+                        text: 'أرسلنا رمزاً إلى\n',
+                        style: tt.bodyMedium
+                            ?.copyWith(color: cs.onPrimary.withOpacity(0.85)),
+                        children: [
+                          TextSpan(
+                            text: widget.phoneNumber,
+                            style: tt.bodyMedium?.copyWith(
+                              color: cs.onPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 30),
-                // تقليل المسافة قبل المربعات
-
-                // ── OTP boxes ────────────────────
-                // تم تعديل الـ Row ليكون متمركز بالمنتصف مع مسافات مخصصة ومحكومة بين المربعات
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    5,
-                        (i) =>
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          // مسافة 4 بكسل فقط بين كل مربع ومربع
-                          child: _OtpBox(
-                            controller: _controllers[i],
-                            focusNode: _focusNodes[i],
-                            onChanged: (val) => _onChanged(i, val),
-                            activeColor: brandPurple,
-                            fillColor: bgGrey,
+                  const Spacer(flex: 1),
+                  AuthCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _OtpField(
+                          length: _codeLength,
+                          controller: _codeController,
+                          focusNode: _focusNode,
+                          code: code,
+                        ),
+                        const SizedBox(height: 28),
+                        AuthPrimaryButton(
+                          label: 'تحقق',
+                          isLoading: isLoading,
+                          enabled: code.length == _codeLength,
+                          onPressed: _verify,
+                        ),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: _secondsLeft > 0
+                              ? Text(
+                            'إعادة الإرسال بعد 00:${_secondsLeft.toString().padLeft(2, '0')}',
+                            style: tt.bodyMedium
+                                ?.copyWith(color: cs.onSurfaceVariant),
+                          )
+                              : TextButton(
+                            onPressed: isLoading ? null : _resend,
+                            child: const Text('إعادة إرسال الرمز'),
                           ),
                         ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                // تقليل المسافة بعد المربعات
-
-                // ── Resend Code ──────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.refresh,
-                      size: 14,
-                      color: Colors.grey.shade500,
-                    ),
-                    const SizedBox(width: 4),
-                    TextButton(
-                      onPressed: _secondsRemaining == 0 ? _resend : null,
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        _secondsRemaining == 0
-                            ? 'Resend Code'
-                            : 'Resend Code in ${_secondsRemaining}s',
-                        style: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 30),
-
-                // ── Actions ──────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 10),
-                        ),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: Color(0xFFD65353),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: BlocBuilder<AuthBloc, AuthState>(
-                        builder: (context, state) {
-                          final bool isLoading = state is VerifyOtpLoading ||
-                              state is SendOtpLoading;
-                          return Container(
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: brandPurple,
-                              borderRadius: BorderRadius.circular(
-                                  12),
-                            ),
-                            child: ElevatedButton(
-                              onPressed: isLoading ? null : _verify,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: isLoading
-                                  ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
-                              )
-                                  : const Text(
-                                'Verify',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                  const Spacer(flex: 2),
+                ],
+              ),
             ),
-          ),
-        ),
-      ),);
+          );
+        },
+      ),
+    );
   }
 }
 
-// ── Single OTP box ────────────────────────────────────────────────────────────
-class _OtpBox extends StatelessWidget {
+/// Underline-style OTP boxes over a single invisible text field.
+class _OtpField extends StatelessWidget {
+  final int length;
   final TextEditingController controller;
   final FocusNode focusNode;
-  final ValueChanged<String> onChanged;
-  final Color activeColor;
-  final Color fillColor;
+  final String code;
 
-  const _OtpBox({
+  const _OtpField({
+    required this.length,
     required this.controller,
     required this.focusNode,
-    required this.onChanged,
-    required this.activeColor,
-    required this.fillColor,
+    required this.code,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 48,
-      height: 60,
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        keyboardType: TextInputType.number,
-        textAlign: TextAlign.center,
-        maxLength: 1,
-        autofocus: false,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
-        decoration: InputDecoration(
-          counterText: '',
-          filled: true,
-          fillColor: fillColor,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Stack(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(length, (i) {
+              final filled = i < code.length;
+              final isCurrent = i == code.length && focusNode.hasFocus;
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 7),
+                width: 34,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: 44,
+                      child: Center(
+                        child: Text(
+                          filled ? code[i] : '',
+                          style: tt.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                      ),
+                    ),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      height: isCurrent ? 3.5 : 2.5,
+                      decoration: BoxDecoration(
+                        color: isCurrent
+                            ? cs.primary
+                            : filled
+                            ? cs.primary.withOpacity(0.55)
+                            : cs.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            // حدود ناعمة رمادية خفيفة جداً
-            borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0,
+              child: TextField(
+                controller: controller,
+                focusNode: focusNode,
+                keyboardType: TextInputType.number,
+                maxLength: length,
+                showCursor: false,
+                enableSuggestions: false,
+                autocorrect: false,
+                enableInteractiveSelection: false,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  counterText: '',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: activeColor, width: 2),
-          ),
-        ),
-        onChanged: onChanged,
+        ],
       ),
     );
   }
+}
+
+void _showSnack(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+  );
 }

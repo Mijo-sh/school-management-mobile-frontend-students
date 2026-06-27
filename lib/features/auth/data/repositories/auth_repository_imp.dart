@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
-import 'package:flutter/cupertino.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../profile/data/models/user_mapper.dart';
 import '../../../profile/domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../data_sources/local_data_source/auth_local_data_source.dart';
@@ -19,50 +18,66 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, String>> sendOtp(String phoneNumber) async {
     try {
-      final message = await remoteDataSource.sendOtp(phoneNumber: phoneNumber);
-      return Right(message);
-    } catch (e, stackTrace) {
-      debugPrint('sendOtp error: $e\n$stackTrace');
-      return Left(ServerFailure(/*e.toString()*/));
+      return Right(await remoteDataSource.sendOtp(phoneNumber));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
     }
   }
 
   @override
-  Future<Either<Failure, UserEntity>> logIn(
-      String phoneNumber,
-      String otpCode,
-      ) async {
+  Future<Either<Failure, String>> resendOtp(String phoneNumber) async {
     try {
-      final remoteData = await remoteDataSource.verifyOtp(
+      return Right(await remoteDataSource.resendOtp(phoneNumber));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> login({
+    required String phoneNumber,
+    required String otp,
+  }) async {
+    try {
+      final (user, token) = await remoteDataSource.verifyOtp(
         phoneNumber: phoneNumber,
-        otpCode: otpCode,
+        otp: otp,
       );
 
-      // Laravel Sanctum يرجع: { token: '...', user: {...} }
-      final token = remoteData['token'] as String;
-      final userData = remoteData['user'] as Map<String, dynamic>;
+// 👇 طباعة للتأكد
+      print('🔑 TOKEN RECEIVED: $token');
 
-      await localDataSource.saveToken(token);
+      await localDataSource.cacheToken(token);
+      await localDataSource.cacheUser(user);
 
-      final userModel = UserMapper.fromJson(userData);
-      await localDataSource.cacheUser(userModel);
+// 👇 نقرا التوكن مرة تانية من التخزين للتأكد إنو انخزن فعلاً
+      final savedToken = await localDataSource.getToken();
+      print('💾 TOKEN FROM STORAGE: $savedToken');
 
-      // ✅ لا يوجد cast — UserModel يرث من UserEntity مباشرة
-      return Right(userModel);
-    } catch (e, stackTrace) {
-      debugPrint('logIn error: $e\n$stackTrace');
-      return Left(ServerFailure(/*e.toString()*/));
+      return Right(user);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on CacheException {
+      return const Left(CacheFailure());
     }
   }
 
   @override
-  Future<Either<Failure, Unit>> logOut() async {
+  Future<Either<Failure, Unit>> logout() async {
     try {
-      await localDataSource.clearSession();
+      await localDataSource.clear();
       return const Right(unit);
-    } catch (e, stackTrace) {
-      debugPrint('logOut error: $e\n$stackTrace');
-      return Left(CacheFailure(/*e.toString()*/));
+    } on CacheException {
+      return const Left(CacheFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity?>> getCachedUser() async {
+    try {
+      return Right(await localDataSource.getUser());
+    } on CacheException {
+      return const Left(CacheFailure());
     }
   }
 }

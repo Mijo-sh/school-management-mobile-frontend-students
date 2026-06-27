@@ -23,7 +23,20 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   late Animation<double> _logoOpacity;
   late Animation<Offset> _textOffset;
   late Animation<double> _textOpacity;
+  bool _precached = false;
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_precached) {
+      _precached = true;
+      // 👇 نحمّل صورة خلفية اللوجين مسبقاً وهنّي بالـ Splash
+      precacheImage(
+        const AssetImage('assets/images/background_login.jpg'),
+        context,
+      );
+    }
+  }
   @override
   void initState() {
     super.initState();

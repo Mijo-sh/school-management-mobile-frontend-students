@@ -1,5 +1,5 @@
-import '../../../app_intro/domain/enums/user_role.dart';
 import '../../domain/entities/user_entity.dart';
+import '../../domain/entities/user_role.dart';
 
 class UserModel extends UserEntity {
   const UserModel({
@@ -7,31 +7,39 @@ class UserModel extends UserEntity {
     required super.phoneNumber,
     required super.firstName,
     required super.lastName,
-    required super.fatherName,
-    required super.motherName,
+    super.fatherName,
+    super.motherName,
     super.birthDate,
-    required super.photoUrl,
-    required super.address,
-    required super.gender,
-    required super.role,
+    super.birthPlace,
+    super.address,
+    super.nationality,
+    super.gender,
+    super.photoUrl,
+    super.accountStatus,
+    super.recordStatus,
+    super.roles,
   });
 
-  // هذه الدالة لتحويل البيانات الأساسية فقط
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final rolesJson = json['roles'] as List<dynamic>? ?? [];
     return UserModel(
-      id: json['id'].toString(),
-      phoneNumber: json['phone_number'] ?? '',
-      firstName: json['first_name'] ?? '',
-      lastName: json['last_name'] ?? '',
-      fatherName: json['father_name'] ?? '',
-      motherName: json['mother_name'] ?? '',
-      birthDate: json['birth_date'] != null ? DateTime.tryParse(json['birth_date']) : null,
-      photoUrl: json['photo_url'] ?? '',
-      address: json['address'] ?? '',
-      gender: json['gender'] ?? 'male',
-      role: (json['role_name'] ?? json['role_id'].toString()) == '1' || json['role_name'] == 'student'
-          ? UserRole.student
-          : UserRole.parent,
+      id: json['id'] as int,
+      phoneNumber: json['phone_number']?.toString() ?? '',
+      firstName: json['first_name']?.toString() ?? '',
+      lastName: json['last_name']?.toString() ?? '',
+      fatherName: json['father_name']?.toString(),
+      motherName: json['mother_name']?.toString(),
+      birthDate: json['birth_date']?.toString(),
+      birthPlace: json['birth_place']?.toString(),
+      address: json['address']?.toString(),
+      nationality: json['nationality']?.toString(),
+      gender: json['gender']?.toString(),
+      photoUrl: json['photo_url']?.toString(),
+      accountStatus: json['account_status']?.toString(),
+      recordStatus: json['record_status']?.toString(),
+      roles: rolesJson
+          .map((e) => UserRole.fromString(e.toString()))
+          .toList(),
     );
   }
 
@@ -42,10 +50,14 @@ class UserModel extends UserEntity {
     'last_name': lastName,
     'father_name': fatherName,
     'mother_name': motherName,
-    'birth_date': birthDate?.toIso8601String(),
-    'photo_url': photoUrl,
+    'birth_date': birthDate,
+    'birth_place': birthPlace,
     'address': address,
+    'nationality': nationality,
     'gender': gender,
-    'role_name': role == UserRole.student ? 'student' : 'parent',
+    'photo_url': photoUrl,
+    'account_status': accountStatus,
+    'record_status': recordStatus,
+    'roles': roles.map((e) => e.name).toList(),
   };
 }

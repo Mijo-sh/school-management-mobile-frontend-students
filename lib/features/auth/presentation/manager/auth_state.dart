@@ -1,50 +1,36 @@
-// presentation/manager/auth_state.dart
 part of 'auth_bloc.dart';
 
 abstract class AuthState extends Equatable {
   const AuthState();
-
   @override
   List<Object?> get props => [];
 }
 
-// Initial
-class AuthInitial extends AuthState {}
+class AuthInitial extends AuthState {
+  const AuthInitial();
+}
 
-// Send OTP
-class SendOtpLoading extends AuthState {}
+class AuthLoading extends AuthState {
+  const AuthLoading();
+}
 
-class SendOtpSuccess extends AuthState {
+class OtpSentSuccess extends AuthState {
   final String message;
-  const SendOtpSuccess(this.message);
-
+  const OtpSentSuccess(this.message);
   @override
   List<Object?> get props => [message];
 }
 
-class SendOtpFailure extends AuthState {
-  final String message;
-  const SendOtpFailure(this.message);
-
-  @override
-  List<Object?> get props => [message];
-}
-
-// Verify OTP
-class VerifyOtpLoading extends AuthState {}
-
-class VerifyOtpSuccess extends AuthState {
+class LoginSuccess extends AuthState {
   final UserEntity user;
-  const VerifyOtpSuccess(this.user);
-
+  const LoginSuccess(this.user);
   @override
   List<Object?> get props => [user];
 }
 
-class VerifyOtpFailure extends AuthState {
+class AuthError extends AuthState {
   final String message;
-  const VerifyOtpFailure(this.message);
-
+  const AuthError(this.message);
   @override
   List<Object?> get props => [message];
 }

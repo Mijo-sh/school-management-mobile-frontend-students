@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../manager/student_cubit.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -17,253 +20,311 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final bool isLight = Theme.of(context).brightness == Brightness.light;
-    final double statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       key: _scaffoldKey,
       drawer: const Drawer(),
       backgroundColor: colorScheme.surface,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          // ── HEADER ───────────────────────────────
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: _expandedHeight + statusBarHeight,
-            collapsedHeight: _collapsedHeight,
-            toolbarHeight: _collapsedHeight,
-            automaticallyImplyLeading: false,
-            backgroundColor: colorScheme.primary,
-            elevation: 0,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(35)),
+      body: BlocBuilder<StudentCubit, StudentState>(
+        builder: (context, state) {
+          if (state is StudentLoading || state is StudentInitial) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is StudentError) {
+            return _buildError(context, state.message);
+          }
+
+          // StudentLoaded
+          final loaded = state as StudentLoaded;
+          return _buildContent(context, loaded);
+        },
+      ),
+    );
+  }
+
+  // ── ERROR ────────────────────────────────
+  Widget _buildError(BuildContext context, String message) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline_rounded, size: 56, color: colorScheme.error),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, color: colorScheme.onSurface),
             ),
-            flexibleSpace: LayoutBuilder(
-              builder: (context, constraints) {
-                final double maxH = _expandedHeight + statusBarHeight;
-                final double collapseRatio = ((constraints.maxHeight - _collapsedHeight) /
-                    (maxH - _collapsedHeight))
-                    .clamp(0.0, 1.0);
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () => context.read<StudentCubit>().loadStudentData(),
+              child: const Text('إعادة المحاولة'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-                final Color textColor = isLight ? Colors.white : Colors.grey[900]!;
+  // ── CONTENT ──────────────────────────────
+  Widget _buildContent(BuildContext context, StudentLoaded data) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bool isLight = Theme.of(context).brightness == Brightness.light;
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
 
-                // حجم الصورة يتغير مع السكرول بدل ما يتبكسل
-                final double imageSize = (115 * collapseRatio).clamp(0.0, 115.0);
-                final double fontSize  = (19 * collapseRatio).clamp(0.0, 19.0);
-                final double subSize   = (13 * collapseRatio).clamp(0.0, 13.0);
+    // 👇 البيانات الحقيقية
+    final String studentName = data.studentName;
+    final String gradeName = data.academicInfo.gradeName;
+    final String className = data.academicInfo.classNumber;
+    final String semesterName = data.academicInfo.semesterName;
 
-                return ClipRRect(
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Background
-                      Container(color: colorScheme.primary),
+    // الحرفان الأولان للأفاتار المصغّر
+    final String initials = _initials(studentName);
 
-                      // Background image overlay
-                      Opacity(
-                        opacity: (0.12 * collapseRatio).clamp(0.0, 0.12),
-                        child: IgnorePointer(
-                          child: Image.asset(
-                            'assets/images/background_login.jpg',
-                            fit: BoxFit.cover,
-                            color: Colors.white,
-                            colorBlendMode: BlendMode.difference,
-                          ),
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        // ── HEADER ───────────────────────────────
+        SliverAppBar(
+          pinned: true,
+          expandedHeight: _expandedHeight + statusBarHeight,
+          collapsedHeight: _collapsedHeight,
+          toolbarHeight: _collapsedHeight,
+          automaticallyImplyLeading: false,
+          backgroundColor: colorScheme.primary,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(35)),
+          ),
+          flexibleSpace: LayoutBuilder(
+            builder: (context, constraints) {
+              final double maxH = _expandedHeight + statusBarHeight;
+              final double collapseRatio = ((constraints.maxHeight - _collapsedHeight) /
+                  (maxH - _collapsedHeight))
+                  .clamp(0.0, 1.0);
+
+              final Color textColor = isLight ? Colors.white : Colors.grey[900]!;
+
+              final double imageSize = (115 * collapseRatio).clamp(0.0, 115.0);
+              final double fontSize = (19 * collapseRatio).clamp(0.0, 19.0);
+              final double subSize = (13 * collapseRatio).clamp(0.0, 13.0);
+
+              return ClipRRect(
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Container(color: colorScheme.primary),
+                    Opacity(
+                      opacity: (0.12 * collapseRatio).clamp(0.0, 0.12),
+                      child: IgnorePointer(
+                        child: Image.asset(
+                          'assets/images/background_login.jpg',
+                          fit: BoxFit.cover,
+                          color: Colors.white,
+                          colorBlendMode: BlendMode.difference,
                         ),
                       ),
+                    ),
 
-                      // ── EXPANDED content ─────────────────────
-                      Positioned(
-                        top: statusBarHeight,
-                        left: 0, right: 0, bottom: 0,
-                        child: Opacity(
-                          opacity: collapseRatio,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                    // ── EXPANDED content ─────────────────────
+                    Positioned(
+                      top: statusBarHeight,
+                      left: 0, right: 0, bottom: 0,
+                      child: Opacity(
+                        opacity: collapseRatio,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.menu_rounded, color: textColor, size: 28),
+                                  onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                                ),
+                              ],
+                            ),
+                            // الصورة لسا ثابتة (ما إلها API)
+                            if (imageSize > 0)
+                              Container(
+                                width: imageSize,
+                                height: imageSize,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.all(Radius.circular(20 * collapseRatio)),
+                                  border: Border.all(
+                                    color: isLight ? Colors.white : const Color(0xFF2A2A2A),
+                                    width: 3,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.15 * collapseRatio),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 5),
+                                    ),
+                                  ],
+                                  image: const DecorationImage(
+                                    image: AssetImage('assets/images/profile.jpg'),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                            SizedBox(height: 12 * collapseRatio),
+                            // 👇 الاسم الحقيقي
+                            if (fontSize > 0)
+                              Text(
+                                studentName,
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: fontSize,
+                                  fontWeight: FontWeight.bold,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      offset: const Offset(0, 2),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            SizedBox(height: 6 * collapseRatio),
+                            // 👇 الصف + الشعبة الحقيقيين
+                            if (subSize > 0)
+                              Text(
+                                '$gradeName — $className',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: subSize,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // ── COLLAPSED content ──
+                    Positioned(
+                      top: statusBarHeight,
+                      left: 0, right: 0,
+                      height: _collapsedHeight,
+                      child: Opacity(
+                        opacity: (1.0 - collapseRatio * 2).clamp(0.0, 1.0),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              // Menu button
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
+                              Container(
+                                width: 42, height: 42,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: colorScheme.onPrimary.withOpacity(0.2), width: 2),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    initials,
+                                    style: TextStyle(color: colorScheme.onPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  IconButton(
-                                    icon: Icon(Icons.menu_rounded, color: textColor, size: 28),
-                                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                                  Text('Hello,', style: TextStyle(color: colorScheme.onPrimary.withOpacity(0.6), fontSize: 11)),
+                                  const SizedBox(height: 2),
+                                  // 👇 الاسم الحقيقي
+                                  Text(studentName, style: TextStyle(color: colorScheme.onPrimary, fontSize: 14, fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                              const Spacer(),
+                              Stack(
+                                children: [
+                                  Container(
+                                    width: 36, height: 36,
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.onPrimary.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(Icons.notifications_none_rounded, color: colorScheme.onPrimary, size: 20),
+                                  ),
+                                  Positioned(
+                                    top: 6, right: 6,
+                                    child: Container(
+                                      width: 7, height: 7,
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.error,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: colorScheme.primary, width: 1.5),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                              // Profile image — بيتصغر مع السكرول بدون بكسلة
-                              if (imageSize > 0)
-                                Container(
-                                  width: imageSize,
-                                  height: imageSize,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.all(Radius.circular(20 * collapseRatio)),
-                                    border: Border.all(
-                                      color: isLight ? Colors.white : const Color(0xFF2A2A2A),
-                                      width: 3,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.15 * collapseRatio),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 5),
-                                      ),
-                                    ],
-                                    image: const DecorationImage(
-                                      image: AssetImage('assets/images/profile.jpg'),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                              SizedBox(height: 12 * collapseRatio),
-                              // Name
-                              if (fontSize > 0)
-                                Text(
-                                  'Sara Adnan Staif',
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontSize: fontSize,
-                                    fontWeight: FontWeight.bold,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        offset: const Offset(0, 2),
-                                        blurRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              SizedBox(height: 6 * collapseRatio),
-                              // Division
-                              if (subSize > 0)
-                                Text(
-                                  'First Sharia — First Division',
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontSize: subSize,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
                             ],
                           ),
                         ),
                       ),
-
-                      // ── COLLAPSED content (home header style) ──
-                      Positioned(
-                        top: statusBarHeight,
-                        left: 0, right: 0,
-                        height: _collapsedHeight,
-                        child: Opacity(
-                          opacity: (1.0 - collapseRatio * 2).clamp(0.0, 1.0),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // Avatar
-                                Container(
-                                  width: 42, height: 42,
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.primaryContainer,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: colorScheme.onPrimary.withOpacity(0.2), width: 2),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      'SA',
-                                      style: TextStyle(color: colorScheme.onPrimary, fontSize: 13, fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Hello,', style: TextStyle(color: colorScheme.onPrimary.withOpacity(0.6), fontSize: 11)),
-                                    const SizedBox(height: 2),
-                                    Text('Sara Adnan Staif', style: TextStyle(color: colorScheme.onPrimary, fontSize: 14, fontWeight: FontWeight.w500)),
-                                  ],
-                                ),
-                                const Spacer(),
-                                // Notification bell
-                                Stack(
-                                  children: [
-                                    Container(
-                                      width: 36, height: 36,
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.onPrimary.withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Icon(Icons.notifications_none_rounded, color: colorScheme.onPrimary, size: 20),
-                                    ),
-                                    Positioned(
-                                      top: 6, right: 6,
-                                      child: Container(
-                                        width: 7, height: 7,
-                                        decoration: BoxDecoration(
-                                          color: colorScheme.error,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: colorScheme.primary, width: 1.5),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // ── CALENDAR STRIP ───────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: _buildModernCalendarStrip(colorScheme),
-            ),
-          ),
-
-          // ── SCHEDULE TITLE (pinned) ───────────────
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _SliverPinnedTitleDelegate(
-              child: Container(
-                color: colorScheme.surface,
-                padding: const EdgeInsets.only(left: 20),
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Tomorrow's Classes",
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                    ),
+                  ],
                 ),
+              );
+            },
+          ),
+        ),
+
+        // ── CALENDAR STRIP ───────────────────────
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: _buildModernCalendarStrip(colorScheme),
+          ),
+        ),
+
+        // ── SCHEDULE TITLE (pinned) ───────────────
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _SliverPinnedTitleDelegate(
+            child: Container(
+              color: colorScheme.surface,
+              padding: const EdgeInsets.only(left: 20),
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Tomorrow's Classes",
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               ),
             ),
           ),
+        ),
 
-          // ── SCHEDULE LIST ─────────────────────────
-          SliverPadding(
-            padding: const EdgeInsets.only(bottom: 80),
-            sliver: SliverToBoxAdapter(child: _buildDailySchedule(colorScheme)),
-          ),
-        ],
-      ),
+        // ── SCHEDULE LIST (لسا ثابت — ما إلو API) ──
+        SliverPadding(
+          padding: const EdgeInsets.only(bottom: 80),
+          sliver: SliverToBoxAdapter(child: _buildDailySchedule(colorScheme)),
+        ),
+      ],
     );
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return '';
+    if (parts.length == 1) return parts.first.characters.first.toUpperCase();
+    return (parts[0].characters.first + parts[1].characters.first).toUpperCase();
   }
 
   // ── CALENDAR STRIP ───────────────────────
   Widget _buildModernCalendarStrip(ColorScheme colorScheme) {
     const List<String> months = [
-      'January', 'February', 'March',    'April',   'May',      'June',
-      'July',    'August',   'September','October', 'November', 'December',
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
     ];
     final bool isLight = Theme.of(context).brightness == Brightness.light;
 
@@ -278,7 +339,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(5, (index) {
               final int monthOffset = selectedDate.month - 1 + (index - 2);
-              final int monthIndex  = (monthOffset % 12 + 12) % 12;
+              final int monthIndex = (monthOffset % 12 + 12) % 12;
               final bool isSelected = index == 2;
               final int dist = (index - 2).abs();
 
@@ -315,9 +376,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(7, (index) {
-              final DateTime date   = selectedDate.add(Duration(days: index - 3));
+              final DateTime date = selectedDate.add(Duration(days: index - 3));
               final bool isSelected = index == 3;
-              final int dist        = (index - 3).abs();
+              final int dist = (index - 3).abs();
               const List<String> days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
               return Column(
@@ -326,7 +387,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOutCubic,
-                    width:  48.0 - (dist * 4.0),
+                    width: 48.0 - (dist * 4.0),
                     height: 76.0 - (dist * 6.0),
                     decoration: BoxDecoration(
                       color: isSelected
@@ -384,16 +445,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
-  // ── DAILY SCHEDULE ───────────────────────
+  // ── DAILY SCHEDULE (ثابت مؤقتاً) ──────────
   Widget _buildDailySchedule(ColorScheme colorScheme) {
     final bool isLight = Theme.of(context).brightness == Brightness.light;
     const List<Map<String, String>> schedule = [
-      {'time': '08:00 - 08:45 AM', 'subject': 'Mathematics',     'teacher': 'Mr. Khaled Al-Obeid'},
-      {'time': '08:45 - 10:30 AM', 'subject': 'Physics Class',   'teacher': 'Mr. Sameer Al-Khateeb'},
+      {'time': '08:00 - 08:45 AM', 'subject': 'Mathematics', 'teacher': 'Mr. Khaled Al-Obeid'},
+      {'time': '08:45 - 10:30 AM', 'subject': 'Physics Class', 'teacher': 'Mr. Sameer Al-Khateeb'},
       {'time': '10:45 - 11:30 AM', 'subject': 'Arabic Language', 'teacher': 'Mr. Marwan Al-Sheikh'},
-      {'time': '08:45 - 10:30 AM', 'subject': 'Physics Class',   'teacher': 'Mr. Sameer Al-Khateeb'},
+      {'time': '08:45 - 10:30 AM', 'subject': 'Physics Class', 'teacher': 'Mr. Sameer Al-Khateeb'},
       {'time': '10:45 - 11:30 AM', 'subject': 'Arabic Language', 'teacher': 'Mr. Marwan Al-Sheikh'},
-      {'time': '08:45 - 10:30 AM', 'subject': 'Physics Class',   'teacher': 'Mr. Sameer Al-Khateeb'},
+      {'time': '08:45 - 10:30 AM', 'subject': 'Physics Class', 'teacher': 'Mr. Sameer Al-Khateeb'},
       {'time': '10:45 - 11:30 AM', 'subject': 'Arabic Language', 'teacher': 'Mr. Marwan Al-Sheikh'},
     ];
     final List<Color> cardColors = [colorScheme.primary, colorScheme.secondary, colorScheme.tertiary];
@@ -473,7 +534,10 @@ class _SliverPinnedTitleDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => child;
-  @override double get maxExtent => 55.0;
-  @override double get minExtent => 55.0;
-  @override bool shouldRebuild(covariant _SliverPinnedTitleDelegate old) => old.child != child;
+  @override
+  double get maxExtent => 55.0;
+  @override
+  double get minExtent => 55.0;
+  @override
+  bool shouldRebuild(covariant _SliverPinnedTitleDelegate old) => old.child != child;
 }

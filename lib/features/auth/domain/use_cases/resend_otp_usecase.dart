@@ -1,19 +1,17 @@
+// resend_otp_usecase.dart
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../repositories/auth_repository.dart';
 
-class SendOtpUsecase {
+class ResendOtpUsecase {
   final AuthRepository repository;
-  SendOtpUsecase(this.repository);
+  ResendOtpUsecase(this.repository);
 
   Future<Either<Failure, String>> call(String phoneNumber) async {
     final phone = phoneNumber.trim();
     if (phone.isEmpty) {
       return const Left(ValidationFailure('الرجاء إدخال رقم الهاتف'));
     }
-    if (phone.length != 10 || int.tryParse(phone) == null) {
-      return const Left(ValidationFailure('رقم الهاتف يجب أن يتكوّن من 10 أرقام'));
-    }
-    return repository.sendOtp(phone);
+    return repository.resendOtp(phone);
   }
 }

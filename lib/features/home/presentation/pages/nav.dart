@@ -1,5 +1,10 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/injector/injector_container.dart';
+import '../../../profile/presentation/manager/guardian_cubit.dart';
+import '../../../profile/presentation/manager/student_cubit.dart';
+import '../../../profile/presentation/pages/guardian.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import 'home_paage.dart';
 
@@ -13,10 +18,16 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    StudentDashboard(),
-    HomeScreen(),
-
+  final List<Widget> _screens = [
+    BlocProvider(
+      create: (_) => di<StudentCubit>()..loadStudentData(),
+      child: const StudentDashboard(),
+    ),
+    BlocProvider(
+      create: (_) => di<GuardianCubit>()..loadChildren(),
+      child: const GuardianPage(),
+    ),
+    const HomeScreen(),
   ];
 
   @override
