@@ -7,30 +7,19 @@ class SplashBackgroundWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Stack(
       fit: StackFit.expand,
       children: [
-        // background gradient
         Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                theme.primaryColorDark,
-                theme.primaryColor
-              ]
-            )
+            color: AppColors.purple600
           )
         ),
-        // pattern background
         Positioned.fill(
           child: Opacity(
             opacity: 0.15,
             child: Image.asset(
-              ImagesManager.splashBackground,
+              ImagesManager.patternBackground,
               fit: BoxFit.fill,
               color: AppColors.white,
               colorBlendMode: BlendMode.srcIn

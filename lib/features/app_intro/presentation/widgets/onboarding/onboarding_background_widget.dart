@@ -1,3 +1,4 @@
+import '../../../../../../core/theme/app_colors.dart';
 import 'onboarding_bubbles_widget.dart';
 import 'package:flutter/material.dart';
 
@@ -6,8 +7,6 @@ class OnboardingBackgroundWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -17,8 +16,8 @@ class OnboardingBackgroundWidget extends StatelessWidget {
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
               colors: [
-                theme.primaryColorDark,
-                theme.primaryColor
+                AppColors.purple600,
+                AppColors.purple300
               ]
             )
           )

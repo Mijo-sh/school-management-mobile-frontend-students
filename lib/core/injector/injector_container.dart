@@ -114,7 +114,7 @@ Future<void> init() async {
   di.registerFactory(() => LanguageBloc(getLanguage: di(), saveLanguage: di()));
 
   // ********** App Intro & Splash   **********
-  di.registerLazySingleton<AppSessionLocalDataSource>(() => AppSessionLocalDataSourceImpl(preferences: di()));
+  di.registerLazySingleton<AppSessionLocalDataSource>(() => AppSessionLocalDataSourceImpl( storage: di()));
   di.registerLazySingleton<AppSessionRepository>(() => AppSessionRepositoryImpl(localDataSource: di()));
   di.registerLazySingleton<GetAppSessionUseCase>(() => GetAppSessionUseCase(repository: di()));
   di.registerLazySingleton<SaveAppSessionUseCase>(() => SaveAppSessionUseCase(repository: di()));

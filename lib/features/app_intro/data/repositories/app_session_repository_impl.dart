@@ -1,4 +1,5 @@
 import '../../domain/repositories/app_session_repository.dart';
+import '../../factories/app_session_default_factory.dart';
 import '../data_sources/app_session_local_data_source.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../domain/entities/app_session.dart';
@@ -15,6 +16,12 @@ class AppSessionRepositoryImpl implements AppSessionRepository {
   Future<Either<Failure, AppSession>> getSession() async {
     try {
       final session = await localDataSource.getCachedSession();
+      if(session == null) {
+        final defaultSession = AppSessionDefaultFactory.create();
+        await localDataSource.cacheSession(defaultSession);
+        return Right(defaultSession);
+
+      }
       return Right(session);
 
     } on CacheException {

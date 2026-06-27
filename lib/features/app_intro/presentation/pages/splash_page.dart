@@ -4,8 +4,10 @@ import '../../../../core/injector/injector_container.dart';
 import '../widgets/splash/splash_background_widget.dart';
 import '../widgets/splash/splash_content_widget.dart';
 import '../widgets/splash/splash_version_widget.dart';
-import '../../domain/services/app_entry_decider.dart';
+import '../../../../core/routing/route_name.dart';
+import '../../domain/enums/splash_decision.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/splash/splash_bloc.dart';
 import 'package:flutter/material.dart';
 
@@ -57,7 +59,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     );
 
     _logoOpacity = Tween<double>(
-      begin: 5,
+      begin: 0,
       end: 1
     ).animate(
       CurvedAnimation(
@@ -90,11 +92,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
       )
     );
 
-    _controller.forward();//.then((_) {
-    //   if(!mounted) return;
-    //   context.read<SplashBloc>().add(GetAppSessionSplashEvent());
-    // });
-    
+    _controller.forward();
+
     Future.delayed(
       const Duration(milliseconds: 3000),
       () {
@@ -110,6 +109,23 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     setState(() {appVersion = 'v ${packageInfo.version}';});
   }
 
+  void _decideHandler(BuildContext context, SplashDecision decision) {
+    switch(decision) {
+      case SplashDecision.onboarding:
+        context.go(RouteName.onboarding);
+        break;
+      case SplashDecision.logIn:
+        context.go(RouteName.logIn);
+        break;
+      case SplashDecision.addPic:
+        context.go(RouteName.addPic);
+        break;
+      case SplashDecision.homeShell:
+        context.go(RouteName.homeShell);
+        break;
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -121,7 +137,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
     return BlocListener<SplashBloc, SplashState>(
       listener: (context, state) {
         if(state is NavigateSplashState) {
-          di<AppEntryDecider>().decideHandler(context, state.decision);
+          _decideHandler(context, state.decision);
 
         }
         if(state is ErrorSplashState) {

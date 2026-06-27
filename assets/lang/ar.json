@@ -1,10 +1,32 @@
 {
-  "app_name" : "اكاديمية اس ام",
+  "app_name" : "مدرستي",
 
+  "onboarding_skip" : "تخطي",
   "onboarding1_title" : "",
   "onboarding2_title" : "",
   "onboarding3_title" : "",
   "onboarding1_description" : "",
   "onboarding2_description" : "",
-  "onboarding3_description" : ""
+  "onboarding3_description" : "",
+
+  "month_january" : "كانون الثاني",
+  "month_february" : "شباط",
+  "month_march" : "آذار",
+  "month_april" : "نيسان",
+  "month_may" : "أيار",
+  "month_june" : "حزيران",
+  "month_july" : "تموز",
+  "month_august" : "آب",
+  "month_september" : "أيلول",
+  "month_october" : "تشرين الأول",
+  "month_november" : "تشرين الثاني",
+  "month_december" : "كانون الأول",
+
+  "day_sunday" : "أحد",
+  "day_monday" : "اثنين",
+  "day_tuesday" : "ثلاثاء",
+  "day_wednesday" : "أربعاء",
+  "day_thursday" : "خميس",
+  "day_friday" : "جمعة",
+  "day_saturday" : "سبت"
 }
