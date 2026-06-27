@@ -17,7 +17,13 @@ class CacheFailure extends Failure {
   const CacheFailure([super.message = 'خطأ في التخزين المحلي']);
 }
 
-// ✅ جديد — للـ input validation في UseCases
 class ValidationFailure extends Failure {
-  const ValidationFailure(super.message);
+  const ValidationFailure([super.message='validation failure']);
+}
+class OfflineFailure extends Failure {
+  OfflineFailure([super.message='offline failure']);
+}
+
+class EmptyCacheFailure extends Failure {
+  EmptyCacheFailure([super.message='EmptyCache failure']);
 }
