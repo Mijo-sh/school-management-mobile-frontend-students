@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../profile/domain/entities/user_entity.dart';
+import '../../../shared/domain/entities/user_entity.dart';
 import '../repositories/auth_repository.dart';
 
 class LoginUseCase {

@@ -1,5 +1,5 @@
+import '../../../shared/domain/entities/user_role.dart';
 import '../../domain/entities/app_session.dart';
-import '../../domain/enums/user_role.dart';
 import 'dart:convert';
 
 class AppSessionModel extends AppSession {
@@ -27,7 +27,7 @@ class AppSessionModel extends AppSession {
       isPicChoose: json['isPicChoose'],
       token: json['token'],
       tokenExpiresAt: json['tokenExpiresAt'] != null ? DateTime.parse(json['tokenExpiresAt']) : null,
-      role: json['role'] != null ? UserRoleX.fromString(json['role']) : null
+      role: json['role'] != null ? UserRole.fromString(json['role']) : null
     );
   }
 
@@ -37,7 +37,7 @@ class AppSessionModel extends AppSession {
       'isPicChoose': isPicChoose,
       'token': token,
       'tokenExpiresAt': tokenExpiresAt?.toIso8601String(),
-      'role': role?.name.toUpperCase()
+      'role': role?.name
     };
   }
 

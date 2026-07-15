@@ -27,3 +27,8 @@ class OfflineFailure extends Failure {
 class EmptyCacheFailure extends Failure {
   EmptyCacheFailure([super.message='EmptyCache failure']);
 }
+
+class UnExpectedFailure extends Failure {
+  UnExpectedFailure([super.message='UnExpectedFailure']);
+}
+

@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../../core/errors/exceptions.dart';
-import '../../../../profile/data/models/user_model.dart';
+import '../../../../shared/data/models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
   Future<String> sendOtp(String phoneNumber);

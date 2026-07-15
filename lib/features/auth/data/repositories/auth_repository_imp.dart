@@ -1,18 +1,21 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../profile/domain/entities/user_entity.dart';
+import '../../../shared/domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../data_sources/local_data_source/auth_local_data_source.dart';
 import '../data_sources/remote_data_source/auth_remote_datasource.dart';
+import '../../../app_intro/domain/repositories/app_session_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
   final AuthLocalDataSource localDataSource;
+  final AppSessionRepository sessionRepository;
 
   AuthRepositoryImpl({
     required this.remoteDataSource,
     required this.localDataSource,
+    required this.sessionRepository,
   });
 
   @override
@@ -44,15 +47,8 @@ class AuthRepositoryImpl implements AuthRepository {
         otp: otp,
       );
 
-// 👇 طباعة للتأكد
-      print('🔑 TOKEN RECEIVED: $token');
-
-      await localDataSource.cacheToken(token);
+      await _saveTokenToSession(token, user);
       await localDataSource.cacheUser(user);
-
-// 👇 نقرا التوكن مرة تانية من التخزين للتأكد إنو انخزن فعلاً
-      final savedToken = await localDataSource.getToken();
-      print('💾 TOKEN FROM STORAGE: $savedToken');
 
       return Right(user);
     } on ServerException catch (e) {
@@ -62,10 +58,33 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  Future<void> _saveTokenToSession(String token, UserEntity user) async {
+    final sessionResult = await sessionRepository.getSession();
+
+    await sessionResult.fold(
+          (failure) async {
+        throw CacheException();
+      },
+          (currentSession) async {
+        final updated = currentSession.copyWith(
+          token: token,
+          role: user.primaryRole,
+          tokenExpiresAt: DateTime.now().add(const Duration(days: 365)),
+        );
+        final saveResult = await sessionRepository.saveSession(updated);
+        saveResult.fold(
+              (failure) => throw CacheException(),
+              (_) {},
+        );
+      },
+    );
+  }
+
   @override
   Future<Either<Failure, Unit>> logout() async {
     try {
       await localDataSource.clear();
+      await sessionRepository.deleteSession();
       return const Right(unit);
     } on CacheException {
       return const Left(CacheFailure());
@@ -79,5 +98,11 @@ class AuthRepositoryImpl implements AuthRepository {
     } on CacheException {
       return const Left(CacheFailure());
     }
+  }
+
+  @override
+  Future<void> sendFcmToken(String fcmToken) {
+    // TODO: implement sendFcmToken
+    throw UnimplementedError();
   }
 }

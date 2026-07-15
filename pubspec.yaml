@@ -32,6 +32,10 @@ dependencies:
   curved_navigation_bar: ^1.0.6
   dio: ^5.9.2
   flutter_secure_storage: ^10.3.1
+  firebase_core: ^4.11.0
+  firebase_messaging: ^16.4.1
+  flutter_local_notifications: ^22.0.1
+  image_picker: ^1.1.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

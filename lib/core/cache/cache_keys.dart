@@ -6,4 +6,5 @@ class CacheKeys {
   static const String appSession = 'APP_SESSION';
   static const String onboarding = 'ONBOARDING';
   static const String user = 'USER';
+  static const String fcmToken='FCM_TOKEN';
 }

@@ -16,6 +16,13 @@ class GuardianRemoteDataSourceImpl implements GuardianRemoteDataSource {
       final response = await dio.get('/api/user/get-user-data');
       final body = response.data;
 
+      // 🔍 تشخيص مؤقت — احذف بعد الحل
+      print('=== GUARDIAN DEBUG ===');
+      print('statusCode: ${response.statusCode}');
+      print('body runtimeType: ${body.runtimeType}');
+      print('body: $body');
+      print('======================');
+
       if (body is Map && body['status'] == false) {
         throw ServerException(
           message: body['message']?.toString() ?? 'فشل جلب البيانات',
@@ -30,8 +37,22 @@ class GuardianRemoteDataSourceImpl implements GuardianRemoteDataSource {
     } on ServerException {
       rethrow;
     } on DioException catch (e) {
+      // 🔍 تشخيص مؤقت — احذف بعد الحل
+      print('=== GUARDIAN DIO ERROR ===');
+      print('type: ${e.type}');
+      print('statusCode: ${e.response?.statusCode}');
+      print('responseData: ${e.response?.data}');
+      print('error: ${e.error}');
+      print('==========================');
       throw ServerException(message: _extractMessage(e));
-    } catch (_) {
+    } catch (e, st) {
+      // 🔍 تشخيص مؤقت — احذف بعد الحل
+      print('=== GUARDIAN UNKNOWN ERROR ===');
+      print('error runtimeType: ${e.runtimeType}');
+      print('error: $e');
+      print('stackTrace (first 5 lines):');
+      print(st.toString().split('\n').take(5).join('\n'));
+      print('==============================');
       throw const ServerException();
     }
   }

@@ -1,10 +1,29 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:school_management_mobile_frontend_students/features/alerts/data/data_sources/local/alert_local_data_source.dart';
 import 'package:school_management_mobile_frontend_students/features/auth/data/data_sources/local_data_source/auth_local_data_source.dart';
 import 'package:school_management_mobile_frontend_students/features/auth/data/data_sources/remote_data_source/auth_remote_datasource.dart';
 import 'package:school_management_mobile_frontend_students/features/auth/domain/use_cases/log_out.dart';
 import 'package:school_management_mobile_frontend_students/features/auth/presentation/manager/auth_bloc.dart';
 
+import '../../features/activities/data/data_sources/local/activity_local_data_source.dart';
+import '../../features/activities/data/data_sources/remote/activity_remote_data_source.dart';
+import '../../features/activities/data/repositories/activity_repository_impl.dart';
+import '../../features/activities/domain/repositories/activity_repository.dart';
+import '../../features/activities/domain/use_cases/get_activities_usecase.dart';
+import '../../features/activities/domain/use_cases/get_unread_activities_count_usecase.dart';
+import '../../features/activities/domain/use_cases/mark_all_activities_as_read_usecase.dart';
+import '../../features/activities/presentation/manager/activities_cubit.dart';
+import '../../features/alerts/data/data_sources/remote/alert_remote_data_source_example.dart';
+import '../../features/announcement/data/data_sources/local/announcement_local_data_source.dart';
+import '../../features/announcement/data/data_sources/remote/announcement_remote_data_source.dart';
+import '../../features/announcement/data/repositories/announcement_repository_impl.dart';
+import '../../features/announcement/domain/repositories/announcement_repository.dart';
+import '../../features/announcement/domain/use_cases/get_announcements_usecase.dart';
+import '../../features/announcement/domain/use_cases/get_unread_announcements_count_usecase.dart';
+import '../../features/announcement/domain/use_cases/mark_announcement_as_read_usecase.dart';
+import '../../features/announcement/presentation/manager/announcements_cubit.dart';
 import '../../features/app_intro/data/data_sources/app_session_local_data_source.dart';
 import '../../features/app_intro/data/repositories/app_session_repository_impl.dart';
 import '../../features/app_intro/domain/use_cases/complete_onboarding_use_case.dart';
@@ -25,16 +44,23 @@ import '../../features/auth/data/repositories/auth_repository_imp.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/use_cases/log_in_usecase.dart';
 import '../../features/auth/domain/use_cases/send_otp_usecase.dart';
+import '../../features/profile/data/data_sources/local_data_source/profile_local_data_source.dart';
 import '../../features/profile/data/data_sources/remote_data_source/guardian_remote_data_source.dart';
+import '../../features/profile/data/data_sources/remote_data_source/profile_remote_data_source.dart';
 import '../../features/profile/data/data_sources/remote_data_source/student_remote_data_source.dart';
 import '../../features/profile/data/repositories/guardian_repository_imp.dart';
+import '../../features/profile/data/repositories/profile_repository_impl.dart';
 import '../../features/profile/data/repositories/student_repository_imp.dart';
+import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/domain/repositories/quardian_repository.dart';
 import '../../features/profile/domain/repositories/student_repository.dart';
 import '../../features/profile/domain/use_cases/get_cached_user_usecase.dart';
 import '../../features/profile/domain/use_cases/get_children_usecase.dart';
+import '../../features/profile/domain/use_cases/get_profile_picture.dart';
 import '../../features/profile/domain/use_cases/get_student_usecase.dart';
+import '../../features/profile/domain/use_cases/save_profile_picture.dart';
 import '../../features/profile/presentation/manager/guardian_cubit.dart';
+import '../../features/profile/presentation/manager/profile_picture_bloc.dart';
 import '../../features/profile/presentation/manager/student_cubit.dart';
 import '../../features/theme/data/data_sources/theme_local_data_source.dart';
 import '../../features/app_intro/presentation/bloc/splash/splash_bloc.dart';
@@ -47,9 +73,23 @@ import '../../features/language/presentation/bloc/language_bloc.dart';
 import '../../features/theme/presentation/bloc/theme_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../network/auth_interceptor.dart';
+import '../network/dio_auth_interceptor.dart';
 import '../network/network_info.dart';
 import 'package:get_it/get_it.dart';
+
+import '../notifications/data/data_sources/firebase_push_notification_sevice.dart';
+import '../notifications/data/data_sources/local_data_source/notification_local_data_source.dart';
+import '../notifications/data/data_sources/remote_data_source/remote_data_source_notification.dart';
+import '../notifications/domain/repositories/push_notification_repository.dart';
+import '../notifications/domain/use_cases/ensure_fcm_token_usecase.dart';
+import '../notifications/domain/use_cases/put_fcmtoken_usecase.dart';
+import '../notifications/presentation/manager/notification_handler.dart';
+import '../../features/alerts/data/repositories/alert_repository_impl.dart';
+import '../../features/alerts/domain/repositories/alert_repository.dart';
+import '../../features/alerts/domain/use_cases/get_alerts_usecase.dart';
+import '../../features/alerts/domain/use_cases/get_unread_alerts_count_usecase.dart';
+import '../../features/alerts/domain/use_cases/mark_alert_as_read_usecase.dart';
+import '../../features/alerts/presentation/manager/alerts_cubit.dart';
 
 final di = GetIt.instance;
 
@@ -63,95 +103,219 @@ Future<void> init() async {
   );
   di.registerLazySingleton(() => secureStorage);
 
-  final dio = Dio(
-    BaseOptions(
-      baseUrl: 'http://192.168.1.103:8000',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-    ),
-  );
-  dio.interceptors.add(AuthInterceptor(secureStorage: secureStorage));
-  di.registerLazySingleton<Dio>(() => dio);
-  di.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
-  di.registerLazySingleton<InternetConnectionChecker>(() => InternetConnectionChecker.createInstance());
+  // هنا جعلنا بناء الـ Dio بداخل الـ registerLazySingleton عشان ما يتنفذش إلا لما تحتاجه فعلياً، فبالتالي كل الـ DataSources هتكون اتعرفت ومفيش كراش يحصل
+  di.registerLazySingleton<Dio>(() {
+    final dioInstance = Dio(
+      BaseOptions(
+        baseUrl: 'http://10.163.150.242:8000',
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+      ),
+    );
+    dioInstance.interceptors.add(di<DioAuthInterceptor>());
+    return dioInstance;
+  });
 
+  di.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
+  di.registerLazySingleton<FirebaseMessaging>(() => FirebaseMessaging.instance);
+
+  di.registerLazySingleton<InternetConnectionChecker>(() =>
+      InternetConnectionChecker.createInstance());
   // ====================   Core   ====================
-  di.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(connectionChecker: di()));
+  di.registerLazySingleton<NetworkInfo>(() =>
+      NetworkInfoImpl(connectionChecker: di()));
 
   // ====================   Features   ====================
 
   // ********** Auth Feature **********
-  di.registerLazySingleton<AuthLocalDataSource>(() => AuthLocalDataSourceImpl(secureStorage: di()));
-  di.registerLazySingleton<AuthRemoteDataSource>(() => AuthRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<AuthLocalDataSource>(() =>
+      AuthLocalDataSourceImpl(secureStorage: di()));
+  di.registerLazySingleton<AuthRemoteDataSource>(() =>
+      AuthRemoteDataSourceImpl(dio: di()));
 
-  di.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(remoteDataSource: di(), localDataSource: di()));
+  di.registerLazySingleton<AuthRepository>(() =>
+      AuthRepositoryImpl(remoteDataSource: di(),
+          localDataSource: di(),
+          sessionRepository: di()));
 
   di.registerLazySingleton<LoginUseCase>(() => LoginUseCase(di()));
   di.registerLazySingleton<SendOtpUsecase>(() => SendOtpUsecase(di()));
   di.registerLazySingleton<ResendOtpUsecase>(() => ResendOtpUsecase(di()));
   di.registerLazySingleton<LogOutUsecase>(() => LogOutUsecase(di()));
 
-  di.registerFactory(() => AuthBloc(
-    loginUseCase: di(),
-    sendOtpUsecase: di(),
-    resendOtpUsecase: di(),
-    // logOutUsecase: di(),
-  ),
-  );
+  di.registerFactory(() =>
+      AuthBloc(
+        loginUseCase: di(),
+        sendOtpUsecase: di(),
+        resendOtpUsecase: di(),
+        ensureFcmToken: di(),
+        putFcmToken: di(),
+      ));
 
   // ********** Theme   **********
-  di.registerLazySingleton<ThemeLocalDataSource>(() => ThemeLocalDataSourceImpl(preferences: di()));
-  di.registerLazySingleton<ThemeRepository>(() => ThemeRepositoryImpl(localDataSource: di()));
-  di.registerLazySingleton<GetThemeUseCase>(() => GetThemeUseCase(repository: di()));
-  di.registerLazySingleton<SaveThemeUseCase>(() => SaveThemeUseCase(repository: di()));
+  di.registerLazySingleton<ThemeLocalDataSource>(() =>
+      ThemeLocalDataSourceImpl(preferences: di()));
+  di.registerLazySingleton<ThemeRepository>(() =>
+      ThemeRepositoryImpl(localDataSource: di()));
+  di.registerLazySingleton<GetThemeUseCase>(() =>
+      GetThemeUseCase(repository: di()));
+  di.registerLazySingleton<SaveThemeUseCase>(() =>
+      SaveThemeUseCase(repository: di()));
   di.registerFactory(() => ThemeBloc(getTheme: di(), saveTheme: di()));
 
   // ********** Language   **********
-  di.registerLazySingleton<LanguageLocalDataSource>(() => LanguageLocalDataSourceImpl(preferences: di()));
-  di.registerLazySingleton<LanguageRepository>(() => LanguageRepositoryImpl(localDataSource: di()));
-  di.registerLazySingleton<GetLanguageUseCase>(() => GetLanguageUseCase(repository: di()));
-  di.registerLazySingleton<SaveLanguageUseCase>(() => SaveLanguageUseCase(repository: di()));
+  di.registerLazySingleton<LanguageLocalDataSource>(() =>
+      LanguageLocalDataSourceImpl(preferences: di()));
+  di.registerLazySingleton<LanguageRepository>(() =>
+      LanguageRepositoryImpl(localDataSource: di()));
+  di.registerLazySingleton<GetLanguageUseCase>(() =>
+      GetLanguageUseCase(repository: di()));
+  di.registerLazySingleton<SaveLanguageUseCase>(() =>
+      SaveLanguageUseCase(repository: di()));
   di.registerFactory(() => LanguageBloc(getLanguage: di(), saveLanguage: di()));
+  // ********** Notification  **********
+  // 1. Local & Remote Data Sources
+  di.registerLazySingleton<NotificationLocalDataSource>(
+        () => NotificationLocalDataSourceImpl(),
+  );
+  di.registerLazySingleton<NotificationRemoteDataSource>(
+        () =>
+        NotificationRemoteDataSourceImpl(dio: di<
+            Dio>()), // سيأخذ نسخة الـ Dio المحقون بها الـ Interceptor تلقائياً
+  );
 
+  // 2. Repository
+  di.registerLazySingleton<PushNotificationRepository>(() =>
+      FirebasePushNotificationService(remoteDataSource: di()),
+  );
+
+  // 3. Use Cases
+  di.registerLazySingleton(() => EnsureFcmTokenUseCase(di(), di()));
+  di.registerLazySingleton(() => PutFcmTokenUseCase(di()));
+  di.registerLazySingleton(() => NotificationHandler(di()));
   // ********** App Intro & Splash   **********
-  di.registerLazySingleton<AppSessionLocalDataSource>(() => AppSessionLocalDataSourceImpl( storage: di()));
-  di.registerLazySingleton<AppSessionRepository>(() => AppSessionRepositoryImpl(localDataSource: di()));
-  di.registerLazySingleton<GetAppSessionUseCase>(() => GetAppSessionUseCase(repository: di()));
-  di.registerLazySingleton<SaveAppSessionUseCase>(() => SaveAppSessionUseCase(repository: di()));
-  di.registerLazySingleton<DeleteAppSessionUseCase>(() => DeleteAppSessionUseCase(repository: di()));
-  di.registerLazySingleton<CompleteOnboardingUseCase>(() => CompleteOnboardingUseCase(repository: di()));
+  di.registerLazySingleton<DioAuthInterceptor>(() =>
+      DioAuthInterceptor(localDataSource: di()));
+  di.registerLazySingleton<AppSessionLocalDataSource>(() =>
+      AppSessionLocalDataSourceImpl(storage: di()));
+  di.registerLazySingleton<AppSessionRepository>(() =>
+      AppSessionRepositoryImpl(localDataSource: di()));
+  di.registerLazySingleton<GetAppSessionUseCase>(() =>
+      GetAppSessionUseCase(repository: di()));
+  di.registerLazySingleton<SaveAppSessionUseCase>(() =>
+      SaveAppSessionUseCase(repository: di()));
+  di.registerLazySingleton<DeleteAppSessionUseCase>(() =>
+      DeleteAppSessionUseCase(repository: di()));
+  di.registerLazySingleton<CompleteOnboardingUseCase>(() =>
+      CompleteOnboardingUseCase(repository: di()));
 
   di.registerLazySingleton<AppEntryDecider>(() => AppEntryDecider());
 
-  di.registerFactory(() => SplashBloc(getAppSession: di(), decider: di()));
+  di.registerFactory(() =>
+      SplashBloc(getAppSession: di(),
+          decider: di(),
+          ensureFcmToken: di(),
+          putFcmToken: di()));
   di.registerFactory(() => OnboardingBloc(completeOnboarding: di()));
-  // ********** profile  **********
-  // ********** 👤 Profile  **********
 
-  // اليوزكيس المشترك: قراءة المستخدم المخزّن (لاسم الطالب)
-  di.registerLazySingleton<GetCachedUserUsecase>(
-          () => GetCachedUserUsecase(di()));
+  // ********** Profile  **********
+  di.registerLazySingleton<GetCachedUserUsecase>(() =>
+      GetCachedUserUsecase(di()));
 
-  // ----- Guardian (الأولاد) -----
-  di.registerLazySingleton<GuardianRemoteDataSource>(
-          () => GuardianRemoteDataSourceImpl(dio: di()));
-  di.registerLazySingleton<GuardianRepository>(
-          () => GuardianRepositoryImpl(remoteDataSource: di()));
-  di.registerLazySingleton<GetChildrenUsecase>(
-          () => GetChildrenUsecase(di()));
+  di.registerLazySingleton<GuardianRemoteDataSource>(() =>
+      GuardianRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<GuardianRepository>(() =>
+      GuardianRepositoryImpl(remoteDataSource: di()));
+  di.registerLazySingleton<GetChildrenUsecase>(() => GetChildrenUsecase(di()));
   di.registerFactory(() => GuardianCubit(getChildrenUsecase: di()));
 
-  // ----- Student (المعلومات الأكاديمية + الاسم) -----
-  di.registerLazySingleton<StudentRemoteDataSource>(
-          () => StudentRemoteDataSourceImpl(dio: di()));
-  di.registerLazySingleton<StudentRepository>(
-          () => StudentRepositoryImpl(remoteDataSource: di()));
-  di.registerLazySingleton<GetAcademicInfoUsecase>(
-          () => GetAcademicInfoUsecase(di()));
-  di.registerFactory(() => StudentCubit(
-    getAcademicInfoUsecase: di(),
-    getCachedUserUsecase: di(),
-  ));
+  di.registerLazySingleton<StudentRemoteDataSource>(() =>
+      StudentRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<StudentRepository>(() =>
+      StudentRepositoryImpl(remoteDataSource: di()));
+  di.registerLazySingleton<GetAcademicInfoUsecase>(() =>
+      GetAcademicInfoUsecase(di()));
+  di.registerFactory(() =>
+      StudentCubit(
+        getAcademicInfoUsecase: di(),
+        getCachedUserUsecase: di(),
+      ));
   di.registerFactory(() => MainCubit(getCachedUserUsecase: di()));
+  di.registerLazySingleton<ProfileLocalDataSource>(() =>
+      ProfileLocalDataSourceImpl(sharedPreferences: di()),);
+  di.registerLazySingleton<ProfileRemoteDataSource>(() =>
+      ProfileRemoteDataSourceImpl(dio: di()),);
+  di.registerLazySingleton<ProfileRepository>(() =>
+      ProfileRepositoryImpl(
+        localDataSource: di(), remoteDataSource: di(), networkInfo: di(),),);
+  di.registerLazySingleton<SaveProfilePicture>(() => SaveProfilePicture(di()));
+  di.registerLazySingleton<GetProfilePicture>(() => GetProfilePicture(di()));
+  di.registerFactory(() =>
+      ProfilePictureBloc(
+        saveProfilePicture: di(),
+        getProfilePicture: di(),
+        getAppSession: di(),
+        // GetAppSessionUseCase — مسجّل أصلًا بقسم App Intro
+        saveAppSession: di(), // SaveAppSessionUseCase — مسجّل أصلًا بقسم App Intro
+      ));
 
+  // ********** Alerts (جديد) **********
+  di.registerLazySingleton<AlertRemoteDataSource>(() =>
+      AlertRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<AlertLocalDataSource>(() =>
+      AlertLocalDataSourceImpl(sharedPreferences: di()));
+
+  di.registerLazySingleton<AlertRepository>(() =>
+      AlertRepositoryImpl(remoteDataSource: di(), localDataSource: di()));
+  di.registerLazySingleton<GetAlertsUseCase>(() =>
+      GetAlertsUseCase(repository: di()));
+  di.registerLazySingleton<GetUnreadAlertsCountUseCase>(() =>
+      GetUnreadAlertsCountUseCase(repository: di()));
+  di.registerLazySingleton<MarkAlertAsReadUseCase>(() =>
+      MarkAlertAsReadUseCase(repository: di()));
+
+  // AlertsCubit بيحتاج studentId وقت الإنشاء (null = الطالب نفسو،
+  // موجود = ولي أمر عم يشوف ابن معيّن) — لهيك registerFactoryParam
+  // بدل registerFactory العادية.
+  di.registerFactoryParam<AlertsCubit, int?, void>(
+        (studentId, _) =>
+        AlertsCubit(
+          getAlertsUseCase: di(),
+          markAlertAsReadUseCase: di(),
+          studentId: studentId,
+        ),
+  );
+
+  // ********** Announcements (جديد) **********
+  di.registerLazySingleton<AnnouncementRemoteDataSource>(() =>
+      AnnouncementRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<AnnouncementLocalDataSource>(() =>
+      AnnouncementLocalDataSourceImpl(sharedPreferences: di()));
+  di.registerLazySingleton<AnnouncementRepository>(() =>
+      AnnouncementRepositoryImpl(
+          remoteDataSource: di(), localDataSource: di()));
+  di.registerLazySingleton<GetAnnouncementsUseCase>(() =>
+      GetAnnouncementsUseCase(repository: di()));
+  di.registerLazySingleton<GetUnreadAnnouncementsCountUseCase>(() =>
+      GetUnreadAnnouncementsCountUseCase(repository: di()));
+  di.registerLazySingleton<MarkAnnouncementAsReadUseCase>(() =>
+      MarkAnnouncementAsReadUseCase(repository: di()));
+
+  di.registerFactoryParam<AnnouncementsCubit, int?, void>((studentId, _) =>
+      AnnouncementsCubit(
+        getAnnouncementsUseCase: di(),
+        markAnnouncementAsReadUseCase: di(),
+        studentId: studentId,
+      ),
+  );
+
+  // ********** Activities (جديد) **********
+  di.registerLazySingleton<ActivityLocalDataSource>(() => ActivityLocalDataSourceImpl(sharedPreferences: di()),);
+  di.registerLazySingleton<ActivityRemoteDataSource>(() => ActivityRemoteDataSourceImpl(dio: di()),);
+  di.registerLazySingleton<ActivityRepository>(() => ActivityRepositoryImpl(remoteDataSource: di(), localDataSource: di(),),);
+  di.registerLazySingleton<GetActivitiesUseCase>(() => GetActivitiesUseCase(repository: di()));
+  di.registerLazySingleton<GetUnreadActivitiesCountUseCase>(() => GetUnreadActivitiesCountUseCase(repository: di()));
+  di.registerLazySingleton<MarkAllActivitiesAsReadUseCase>(() => MarkAllActivitiesAsReadUseCase(repository: di()));
+
+  di.registerFactoryParam<ActivitiesCubit, int?, void>((studentId, _) => ActivitiesCubit(getActivitiesUseCase: di(), markAllAsReadUseCase: di(), studentId: studentId,),);
 }

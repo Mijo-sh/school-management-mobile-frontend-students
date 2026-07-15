@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../../core/cache/cache_keys.dart';
 import '../../../../../core/errors/exceptions.dart';
-import '../../../../profile/data/models/user_model.dart';
+import '../../../../shared/data/models/user_model.dart';
 
 abstract class AuthLocalDataSource {
   Future<void> cacheToken(String token);

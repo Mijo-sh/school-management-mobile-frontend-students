@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../profile/domain/entities/user_role.dart';
+import '../../../shared/domain/entities/user_role.dart';
 import '../../../profile/domain/use_cases/get_cached_user_usecase.dart';
 
 part 'main_state.dart';

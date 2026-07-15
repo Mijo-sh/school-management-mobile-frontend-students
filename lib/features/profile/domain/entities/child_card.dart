@@ -8,6 +8,8 @@ class ChildCard extends Equatable {
   final String? studentPhotoUrl;
   final String gradeName;
   final String classNumber;
+  final String gender;
+
 
   const ChildCard({
     required this.id,
@@ -17,6 +19,7 @@ class ChildCard extends Equatable {
     this.studentPhotoUrl,
     required this.gradeName,
     required this.classNumber,
+    required this.gender,
   });
 
   String get fullName => '$firstName $fatherName $lastName';

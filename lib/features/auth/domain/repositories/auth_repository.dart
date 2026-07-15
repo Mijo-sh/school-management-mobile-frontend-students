@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../profile/domain/entities/user_entity.dart';
+import '../../../shared/domain/entities/user_entity.dart';
 
 abstract class AuthRepository {
   Future<Either<Failure, String>> sendOtp(String phoneNumber);
@@ -11,4 +11,6 @@ abstract class AuthRepository {
   });
   Future<Either<Failure, Unit>> logout();
   Future<Either<Failure, UserEntity?>> getCachedUser();
+  Future<void> sendFcmToken(String fcmToken);
+
 }

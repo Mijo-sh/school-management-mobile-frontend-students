@@ -5,7 +5,7 @@ import '../../../../core/assets_manager/images_manager.dart';
 import '../manager/auth_bloc.dart';
 import '../widgets/auth_widget.dart';
 import '../widgets/verify_widget.dart';
-import 'otp_dailog.dart';
+import 'verification_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

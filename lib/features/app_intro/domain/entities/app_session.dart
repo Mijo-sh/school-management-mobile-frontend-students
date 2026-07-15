@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../enums/user_role.dart';
+import '../../../shared/domain/entities/user_role.dart';
 
 class AppSession extends Equatable {
   final bool isOnboardingCompleted;

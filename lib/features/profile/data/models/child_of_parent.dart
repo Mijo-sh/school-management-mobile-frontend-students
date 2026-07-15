@@ -9,6 +9,7 @@ class ChildCardModel extends ChildCard {
     super.studentPhotoUrl,
     required super.gradeName,
     required super.classNumber,
+    required super.gender,
   });
 
   factory ChildCardModel.fromJson(Map<String, dynamic> json) {
@@ -19,7 +20,8 @@ class ChildCardModel extends ChildCard {
       lastName: json['last_name']?.toString() ?? '',
       studentPhotoUrl: json['student_photo_url']?.toString(),
       gradeName: json['grade_name']?.toString() ?? '',
-      classNumber: json['class_number']?.toString() ?? '',
+      classNumber: json['class_room_name']?.toString() ?? '',
+      gender: json['gender']?.toString() ?? '',
     );
   }
 }

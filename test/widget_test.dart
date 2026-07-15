@@ -1,30 +1,43 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:school_management_mobile_frontend_students/main.dart';
+import 'package:school_management_mobile_frontend_students/core/notifications/domain/repositories/push_notification_repository.dart';
+import 'package:dartz/dartz.dart';
+import 'package:school_management_mobile_frontend_students/core/errors/failures.dart';
+
+class FakeNotificationService implements PushNotificationRepository {
+  @override
+  Future<void> initialize() async {
+  }
+
+  @override
+  Future<String?> getDeviceToken() async {
+    return "fake-token";
+  }
+
+  @override
+  Stream<Map<String, dynamic>> get onNotificationTap => const Stream.empty();
+
+  @override
+  Future<Either<Failure, Unit>> PutFcmToken(String fcmToken) async {
+    return const Right(unit);
+  }
+
+  @override
+  Stream<Map<String, dynamic>> get onForegroundMessage => throw UnimplementedError();
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('App loads successfully', (WidgetTester tester) async {
+    final fakeService = FakeNotificationService();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      MyApp(notificationService: fakeService),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byKey(const Key('app_material_app')), findsWidgets);
+     expect(find.byType(MaterialApp), findsOneWidget);
   });
 }
