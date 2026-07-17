@@ -1,35 +1,58 @@
-
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../shared/domain/entities/paginated.dart';
 import '../../domain/entities/alert_item.dart';
 import '../../domain/repositories/alert_repository.dart';
 import '../data_sources/local/alert_local_data_source.dart';
 import '../data_sources/remote/alert_remote_data_source_example.dart';
+import '../models/alert_item_model.dart';
 
 class AlertRepositoryImpl implements AlertRepository {
   final AlertRemoteDataSource remoteDataSource;
   final AlertLocalDataSource localDataSource;
+
   const AlertRepositoryImpl({
     required this.remoteDataSource,
     required this.localDataSource,
   });
-
   @override
-  Future<Either<Failure, List<AlertItem>>> getAlerts({int? studentId}) async {
+  Future<Either<Failure, Paginated<AlertItem>>> getAlerts({int? studentId, int page = 1}) async {
     try {
-      final result = await remoteDataSource.getAlerts(studentId: studentId);
-      try {
-        await localDataSource.cacheAlerts(result, studentId: studentId);
-      } catch (_) {}
+      // 1. جلب البيانات من السيرفر (ترجع PaginatedModel<AlertItemModel>)
+      final result = await remoteDataSource.getAlerts(studentId: studentId, page: page);
 
-      return Right(result);
+      // 2. تحديث التخزين المحلي للكاش فقط في حالة طلب الصفحة الأولى
+      if (page == 1) {
+        try {
+          // نقوم بعمل cast آمن من List<AlertItem> إلى List<AlertItemModel> لتخزينها
+          final modelsList = result.items.cast<AlertItemModel>();
+          await localDataSource.cacheAlerts(modelsList, studentId: studentId);
+        } catch (_) {}
+      }
+
+      // 3. إرجاع النتيجة كـ Paginated<AlertItem> باستخدام 'items' 👇
+      return Right(Paginated<AlertItem>(
+        items: result.items,
+        currentPage: result.currentPage,
+        lastPage: result.lastPage,
+      ));
+
     } on ServerException catch (e) {
-      try {
-        final cached = await localDataSource.getCachedAlerts(studentId: studentId);
-        return Right(cached);
-      } on CacheException {
+      // 4. في حال فشل الاتصال بالسيرفر (مثال: انقطاع الإنترنت):
+      if (page == 1) {
+        try {
+          final cached = await localDataSource.getCachedAlerts(studentId: studentId);
+          return Right(Paginated<AlertItem>(
+            items: cached,
+            currentPage: 1,
+            lastPage: 1, // تعتبر الصفحة الأخيرة لعدم إمكانية تحميل المزيد أوفلاين
+          ));
+        } on CacheException {
+          return Left(ServerFailure(e.message));
+        }
+      } else {
         return Left(ServerFailure(e.message));
       }
     } catch (e) {

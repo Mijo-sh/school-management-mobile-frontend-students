@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/usecase.dart';
 import '../../../app_intro/domain/use_cases/get_app_session_use_case.dart';
 import '../../../app_intro/domain/use_cases/save_app_session_use_case.dart';
-import '../../domain/use_cases/get_profile_picture.dart';
 import '../../domain/use_cases/save_profile_picture.dart';
 
 import 'profile_picture_event.dart';
@@ -12,24 +11,18 @@ import 'profile_picture_state.dart';
 class ProfilePictureBloc
     extends Bloc<ProfilePictureEvent, ProfilePictureState> {
   final SaveProfilePicture saveProfilePicture;
-  final GetProfilePicture getProfilePicture;
   final GetAppSessionUseCase getAppSession;
   final SaveAppSessionUseCase saveAppSession;
 
   ProfilePictureBloc({
     required this.saveProfilePicture,
-    required this.getProfilePicture,
     required this.getAppSession,
     required this.saveAppSession,
   }) : super(const ProfilePictureInitial()) {
     on<SaveProfilePictureRequested>(_onSaveRequested);
     on<SkipProfilePictureRequested>(_onSkipRequested);
-    on<LoadProfilePictureRequested>(_onLoadRequested);
   }
 
-  /// يعلّم إنو المستخدم خلص مرحلة اختيار الصورة (isPicChoose=true)
-  /// بدون ما نلمس ولا ملف بميزة app_intro — بنستخدم الـ usecases
-  /// الجاهزة أصلًا (Get/Save AppSession).
   Future<void> _markPictureStepDone() async {
     final sessionResult = await getAppSession();
     await sessionResult.fold(
@@ -70,15 +63,5 @@ class ProfilePictureBloc
     emit(const ProfilePictureSkipped());
   }
 
-  Future<void> _onLoadRequested(
-      LoadProfilePictureRequested event,
-      Emitter<ProfilePictureState> emit,
-      ) async {
-    emit(const ProfilePictureLoading());
-    final result = await getProfilePicture(const NoParams());
-    result.fold(
-          (failure) => emit(ProfilePictureError(failure.message)),
-          (picture) => emit(ProfilePictureLoaded(picture)),
-    );
-  }
+
 }

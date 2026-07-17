@@ -1,10 +1,12 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../shared/domain/entities/paginated.dart';
 import '../../domain/entities/announcement_item.dart';
 import '../../domain/repositories/announcement_repository.dart';
 import '../data_sources/local/announcement_local_data_source.dart';
 import '../data_sources/remote/announcement_remote_data_source.dart';
+import '../models/announcement_item_model.dart';
 
 class AnnouncementRepositoryImpl implements AnnouncementRepository {
   final AnnouncementRemoteDataSource remoteDataSource;
@@ -15,20 +17,37 @@ class AnnouncementRepositoryImpl implements AnnouncementRepository {
   });
 
   @override
-  Future<Either<Failure, List<AnnouncementItem>>> getAnnouncements({int? studentId}) async {
+  Future<Either<Failure, Paginated<AnnouncementItem>>> getAnnouncements({int? studentId, int page = 1}) async {
     try {
-      final result = await remoteDataSource.getAnnouncements(studentId: studentId);
+      final result = await remoteDataSource.getAnnouncements(studentId: studentId, page: page);
 
-      try {
-        await localDataSource.cacheAnnouncements(result, studentId: studentId);
-      } catch (_) {}
+      if (page == 1) {
+        try {
+          // الـ Cast الآمن لتوافق الـ Local DB 👈
+          final modelsList = result.items.cast<AnnouncementItemModel>();
+          await localDataSource.cacheAnnouncements(modelsList, studentId: studentId);
+        } catch (_) {}
+      }
 
-      return Right(result);
+      return Right(Paginated<AnnouncementItem>(
+        items: result.items,
+        currentPage: result.currentPage,
+        lastPage: result.lastPage,
+      ));
+
     } on ServerException catch (e) {
-      try {
-        final cached = await localDataSource.getCachedAnnouncements(studentId: studentId);
-        return Right(cached);
-      } on CacheException {
+      if (page == 1) {
+        try {
+          final cached = await localDataSource.getCachedAnnouncements(studentId: studentId);
+          return Right(Paginated<AnnouncementItem>(
+            items: cached,
+            currentPage: 1,
+            lastPage: 1,
+          ));
+        } on CacheException {
+          return Left(ServerFailure(e.message));
+        }
+      } else {
         return Left(ServerFailure(e.message));
       }
     } catch (e) {

@@ -1,7 +1,9 @@
 // widgets/child_card_tile.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/injector/injector_container.dart';
 import '../../../../core/routing/route_name.dart';
+import '../../../../core/routing/selected_child_holder.dart';
 import '../../domain/entities/child_card.dart';
 import 'child_avatar.dart';
 
@@ -16,11 +18,10 @@ class ChildCardTile extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(26),
       onTap: () {
-        context.go(
-          ParentRouteName.childDashboard,
-          extra: child,
-        );
+        di<SelectedChildHolder>().current = child;
+        context.go(ParentRouteName.childDashboard);
       },
+
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 5),
         padding: const EdgeInsets.all(8),

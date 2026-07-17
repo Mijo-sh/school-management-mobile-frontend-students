@@ -24,7 +24,8 @@ class StudentShell extends StatelessWidget {
 
     return SafeArea(
       child: Scaffold(
-        extendBody: true,
+        backgroundColor: const Color(0xFF121212),
+        extendBody: true, // مهم جداً
         bottomNavigationBar: CurvedNavigationBar(
           index: navigationShell.currentIndex,
           height: 60,

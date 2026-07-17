@@ -41,17 +41,18 @@ class StudentCubit extends Cubit<StudentState> {
   /// GuardianCubit (ChildCard)، فما في داعي أي طلب سيرفر جديد —
   /// بس نبني StudentLoaded مباشرة من هالبيانات المتوفرة.
   void loadFromChildCard(ChildCard child) {
+    print(child.studentPhotoUrl);
+    print("=================================================================");
+
     emit(StudentLoaded(
       studentName: child.fullName,
-
+      studentPhotoUrl:child.studentPhotoUrl,
       academicInfo: AcademicInfo(
         gradeName: child.gradeName,
         classNumber: child.classNumber,
-        // TODO: ChildCard ما فيها semesterName حاليًا — إذا محتاجها
-        // فعليًا بالداشبورد، ضيفها لـ ChildCard entity من الـ API
-        // الأساسي (getChildrenUsecase)، أو خليها فاضية متل هلق.
         semesterName: '',
       ),
-    ));
+    )
+    );
   }
 }

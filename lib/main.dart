@@ -32,8 +32,12 @@ void main() async {
   // جلب التوكن وطباعته للفحص
   final token = await pushNotificationService.getDeviceToken();
   print("🔥 [FCM Token]: $token");
-
-  runApp(MyApp(notificationService: pushNotificationService));
+  runApp(
+    BlocProvider<AuthBloc>.value(
+      value: di<AuthBloc>(),
+      child: MyApp(notificationService: pushNotificationService),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -60,6 +64,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+
     return MultiBlocProvider(
       providers: [
         BlocProvider<ThemeBloc>(
@@ -68,9 +73,9 @@ class _MyAppState extends State<MyApp> {
         BlocProvider<LanguageBloc>(
           create: (context) => di<LanguageBloc>()..add(GetLanguageEvent()),
         ),
-        BlocProvider<AuthBloc>(
-          create: (context) => di<AuthBloc>(),
-        ),
+        // ⚠️ AuthBloc اتشال من هون — موفّر أصلًا فوق (BlocProvider.value
+        // بـ main())، وتسجيله هون كان تكرار خطير (create: بيخلي فلاتر
+        // يحاول يقفل الـ Bloc العام تلقائيًا عند أي rebuild).
       ],
       child: BlocBuilder<LanguageBloc, LanguageState>(
         builder: (context, languageState) {

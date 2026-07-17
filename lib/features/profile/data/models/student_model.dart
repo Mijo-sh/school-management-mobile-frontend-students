@@ -14,4 +14,11 @@ class AcademicInfoModel extends AcademicInfo {
       classNumber: json['class_number']?.toString() ?? '',
     );
   }
+  Map<String, dynamic> toJson() {
+    return {
+      'grade_name': gradeName,
+      'semester_name': semesterName,
+      'class_number': classNumber,
+    };
+  }
 }

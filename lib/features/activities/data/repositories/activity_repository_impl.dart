@@ -2,10 +2,12 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../shared/domain/entities/paginated.dart';
 import '../../domain/entities/activity_item.dart';
 import '../../domain/repositories/activity_repository.dart';
 import '../data_sources/local/activity_local_data_source.dart';
 import '../data_sources/remote/activity_remote_data_source.dart';
+import '../models/activity_item_model.dart';
 
 class ActivityRepositoryImpl implements ActivityRepository {
   final ActivityRemoteDataSource remoteDataSource;
@@ -16,20 +18,35 @@ class ActivityRepositoryImpl implements ActivityRepository {
   });
 
   @override
-  Future<Either<Failure, List<ActivityItem>>> getActivities({int? studentId}) async {
+  Future<Either<Failure, Paginated<ActivityItem>>> getActivities({int? studentId, int page = 1}) async {
     try {
-      final result = await remoteDataSource.getActivities(studentId: studentId);
+      final result = await remoteDataSource.getActivities(studentId: studentId, page: page);
 
-      try {
-        await localDataSource.cacheActivities(result, studentId: studentId);
-      } catch (_) {}
+      if (page == 1) {
+        try {
+          final modelsList = result.items.cast<ActivityItemModel>();
+          await localDataSource.cacheActivities(modelsList, studentId: studentId);
+        } catch (_) {}
+      }
 
-      return Right(result);
+      return Right(Paginated<ActivityItem>(
+        items: result.items,
+        currentPage: result.currentPage,
+        lastPage: result.lastPage,
+      ));
     } on ServerException catch (e) {
-      try {
-        final cached = await localDataSource.getCachedActivities(studentId: studentId);
-        return Right(cached);
-      } on CacheException {
+      if (page == 1) {
+        try {
+          final cached = await localDataSource.getCachedActivities(studentId: studentId);
+          return Right(Paginated<ActivityItem>(
+            items: cached,
+            currentPage: 1,
+            lastPage: 1,
+          ));
+        } on CacheException {
+          return Left(ServerFailure(e.message));
+        }
+      } else {
         return Left(ServerFailure(e.message));
       }
     } catch (e) {

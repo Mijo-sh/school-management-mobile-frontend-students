@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/assets_manager/images_manager.dart';
+import '../../../../core/routing/route_name.dart';
 import '../manager/auth_bloc.dart';
 import '../widgets/auth_widget.dart';
 import '../widgets/verify_widget.dart';
@@ -73,15 +75,9 @@ class _LoginPageState extends State<LoginPage>
         listenWhen: (_, __) => ModalRoute.of(context)?.isCurrent ?? true,
         listener: (context, state) {
           if (state is OtpSentSuccess) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => BlocProvider.value(
-                  value: context.read<AuthBloc>(),
-                  child: VerificationPage(phoneNumber: _fullPhone),
-                ),
-              ),
-            );
-          } else if (state is AuthError) {
+            context.push(RouteName.verification, extra: _fullPhone); // نص بسيط بس!
+          }
+           else if (state is AuthError) {
             _showSnack(context, state.message);
           }
         },

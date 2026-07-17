@@ -22,11 +22,9 @@ class NotificationHandler {
     // توجيه بناءً على نوع التنبيه في النظام المدرسي
     switch (type) {
       case 'absence':
-      // Navigator.pushNamed(context, '/absence-details', arguments: id);
         print("توجيه لشاشة الغياب: $id");
         break;
       case 'fee_payment':
-      // Navigator.pushNamed(context, '/wallet-details', arguments: id);
         print("توجيه للمحفظة: $id");
         break;
       default:

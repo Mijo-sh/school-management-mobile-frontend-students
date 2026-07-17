@@ -30,7 +30,7 @@ class ChildShellPage extends StatelessWidget {
       child: Scaffold(
         extendBody: true,
         bottomNavigationBar: CurvedNavigationBar(
-          index: navigationShell.currentIndex, // نأخذ الـ index الحالي من الـ router
+          index: navigationShell.currentIndex,
           height: 60,
           backgroundColor: Colors.transparent,
           color: cs.primary,

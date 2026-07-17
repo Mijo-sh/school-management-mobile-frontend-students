@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
 import '../../../../../core/errors/exceptions.dart';
+import '../../../../shared/data/models/paginated_model.dart';
 import '../../models/activity_item_model.dart';
 
 abstract class ActivityRemoteDataSource {
-  Future<List<ActivityItemModel>> getActivities({int? studentId});
+  Future<PaginatedModel<ActivityItemModel>> getActivities({int? studentId, int page = 1});
   Future<int> getUnreadCount({int? studentId});
   Future<void> markAllAsRead({int? studentId});
 }
@@ -19,21 +20,30 @@ class ActivityRemoteDataSourceImpl implements ActivityRemoteDataSource {
         ? '/api/user/my-activities'
         : '/api/user/child-activities';
   }
-
   @override
-  Future<List<ActivityItemModel>> getActivities({int? studentId}) async {
+  Future<PaginatedModel<ActivityItemModel>> getActivities({int? studentId, int page = 1}) async {
     try {
+      // 1. تجهيز المعاملات بشكل صحيح لضمان وصولها للسيرفر
+      final Map<String, dynamic> params = {'page': page};
+      if (studentId != null) {
+        params['student_id'] = studentId;
+      }
+
       final response = await dio.get(
         _path(studentId),
-        queryParameters: studentId != null ? {'student_id': studentId} : null,
+        queryParameters: params, // إرسال المعاملات هنا ضروري جداً
       );
 
-      final list = (response.data['data'] as List<dynamic>? ?? []);
-      return list
-          .map((e) => ActivityItemModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } on ServerException {
-      rethrow;
+      // 2. التحويل باستخدام PaginatedModel الذي يعتمد على مفتاح "data"
+      return PaginatedModel<ActivityItemModel>.fromJson(
+        response.data as Map<String, dynamic>,
+            (itemJson) => ActivityItemModel.fromJson(itemJson as Map<String, dynamic>),
+      );
+
+    } on DioException catch (e) {
+      // معالجة أفضل للأخطاء القادمة من السيرفر
+      throw ServerException(
+          message: e.response?.data?['message'] ?? 'خطأ في الاتصال بالأنشطة');
     } catch (e) {
       throw ServerException(message: e.toString());
     }

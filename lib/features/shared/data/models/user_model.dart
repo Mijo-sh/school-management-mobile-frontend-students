@@ -20,6 +20,44 @@ class UserModel extends UserEntity {
     super.roles,
   });
 
+  /* STREAMING_CHUNK: Implementing copyWith to allow direct updates to photoUrl */
+  // دالة copyWith لتعديل حقول معينة بأمان (مثل رابط الصورة الشخصية) 👈
+  UserModel copyWith({
+    int? id,
+    String? phoneNumber,
+    String? firstName,
+    String? lastName,
+    String? fatherName,
+    String? motherName,
+    String? birthDate,
+    String? birthPlace,
+    String? address,
+    String? nationality,
+    String? gender,
+    String? photoUrl,
+    String? accountStatus,
+    String? recordStatus,
+    List<UserRole>? roles,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      fatherName: fatherName ?? this.fatherName,
+      motherName: motherName ?? this.motherName,
+      birthDate: birthDate ?? this.birthDate,
+      birthPlace: birthPlace ?? this.birthPlace,
+      address: address ?? this.address,
+      nationality: nationality ?? this.nationality,
+      gender: gender ?? this.gender,
+      photoUrl: photoUrl ?? this.photoUrl,
+      accountStatus: accountStatus ?? this.accountStatus,
+      recordStatus: recordStatus ?? this.recordStatus,
+      roles: roles ?? this.roles,
+    );
+  }
+
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final rolesJson = json['roles'] as List<dynamic>? ?? [];
     return UserModel(

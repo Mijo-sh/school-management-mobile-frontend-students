@@ -3,6 +3,8 @@ class RouteName {
   static const String splash = '/';
   static const String onboarding = '/onboarding';
   static const String logIn = '/LoginPage';
+  static const String verification = '/VerificationPage';
+
   static const String addPic = '/AddPicturePage';
   static const String homeShell = '/HomeShellPage';
   static const String showHolidays = '/show_holidays';

@@ -16,6 +16,7 @@ import '../../features/activities/domain/use_cases/get_unread_activities_count_u
 import '../../features/activities/domain/use_cases/mark_all_activities_as_read_usecase.dart';
 import '../../features/activities/presentation/manager/activities_cubit.dart';
 import '../../features/alerts/data/data_sources/remote/alert_remote_data_source_example.dart';
+import '../../features/alerts/data/repositories/alert_repository_impl.dart';
 import '../../features/announcement/data/data_sources/local/announcement_local_data_source.dart';
 import '../../features/announcement/data/data_sources/remote/announcement_remote_data_source.dart';
 import '../../features/announcement/data/repositories/announcement_repository_impl.dart';
@@ -44,9 +45,12 @@ import '../../features/auth/data/repositories/auth_repository_imp.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/use_cases/log_in_usecase.dart';
 import '../../features/auth/domain/use_cases/send_otp_usecase.dart';
+import '../../features/profile/data/data_sources/local_data_source/guardian_local_datasource.dart';
 import '../../features/profile/data/data_sources/local_data_source/profile_local_data_source.dart';
+import '../../features/profile/data/data_sources/local_data_source/student_local_datasource.dart';
 import '../../features/profile/data/data_sources/remote_data_source/guardian_remote_data_source.dart';
-import '../../features/profile/data/data_sources/remote_data_source/profile_remote_data_source.dart';
+import '../../features/profile/data/data_sources/remote_data_source/image_remote_data_source.dart';
+import '../../features/profile/data/data_sources/remote_data_source/profile_photo_remote_data_source.dart';
 import '../../features/profile/data/data_sources/remote_data_source/student_remote_data_source.dart';
 import '../../features/profile/data/repositories/guardian_repository_imp.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
@@ -56,7 +60,7 @@ import '../../features/profile/domain/repositories/quardian_repository.dart';
 import '../../features/profile/domain/repositories/student_repository.dart';
 import '../../features/profile/domain/use_cases/get_cached_user_usecase.dart';
 import '../../features/profile/domain/use_cases/get_children_usecase.dart';
-import '../../features/profile/domain/use_cases/get_profile_picture.dart';
+import '../../features/profile/domain/use_cases/get_profile_photo_url_usecase.dart';
 import '../../features/profile/domain/use_cases/get_student_usecase.dart';
 import '../../features/profile/domain/use_cases/save_profile_picture.dart';
 import '../../features/profile/presentation/manager/guardian_cubit.dart';
@@ -84,30 +88,33 @@ import '../notifications/domain/repositories/push_notification_repository.dart';
 import '../notifications/domain/use_cases/ensure_fcm_token_usecase.dart';
 import '../notifications/domain/use_cases/put_fcmtoken_usecase.dart';
 import '../notifications/presentation/manager/notification_handler.dart';
-import '../../features/alerts/data/repositories/alert_repository_impl.dart';
 import '../../features/alerts/domain/repositories/alert_repository.dart';
 import '../../features/alerts/domain/use_cases/get_alerts_usecase.dart';
 import '../../features/alerts/domain/use_cases/get_unread_alerts_count_usecase.dart';
 import '../../features/alerts/domain/use_cases/mark_alert_as_read_usecase.dart';
 import '../../features/alerts/presentation/manager/alerts_cubit.dart';
+import '../routing/selected_child_holder.dart';
 
 final di = GetIt.instance;
-
 Future<void> init() async {
-  // ====================   External   ====================
+  // 1. تسجيل الـ SharedPreferences فوراً
   final sharedPreferences = await SharedPreferences.getInstance();
   di.registerLazySingleton(() => sharedPreferences);
 
+  // 2. تسجيل الـ SecureStorage
   const secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
   di.registerLazySingleton(() => secureStorage);
 
-  // هنا جعلنا بناء الـ Dio بداخل الـ registerLazySingleton عشان ما يتنفذش إلا لما تحتاجه فعلياً، فبالتالي كل الـ DataSources هتكون اتعرفت ومفيش كراش يحصل
+  // 3. تسجيل الـ Dio (يعتمد على الـ Interceptor الذي يعتمد على LocalDataSource)
+  // لذلك سنقوم بتسجيل الـ Interceptor أولاً
+  di.registerLazySingleton<DioAuthInterceptor>(() => DioAuthInterceptor(localDataSource: di()));
+
   di.registerLazySingleton<Dio>(() {
     final dioInstance = Dio(
       BaseOptions(
-        baseUrl: 'http://10.163.150.242:8000',
+        baseUrl: 'http://192.168.1.104:8000',
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ),
@@ -129,7 +136,7 @@ Future<void> init() async {
 
   // ********** Auth Feature **********
   di.registerLazySingleton<AuthLocalDataSource>(() =>
-      AuthLocalDataSourceImpl(secureStorage: di()));
+      AuthLocalDataSourceImpl(secureStorage: di(), sharedPreferences: di()));
   di.registerLazySingleton<AuthRemoteDataSource>(() =>
       AuthRemoteDataSourceImpl(dio: di()));
 
@@ -150,6 +157,7 @@ Future<void> init() async {
         resendOtpUsecase: di(),
         ensureFcmToken: di(),
         putFcmToken: di(),
+        logOutUsecase: di(),
       ));
 
   // ********** Theme   **********
@@ -194,8 +202,6 @@ Future<void> init() async {
   di.registerLazySingleton(() => PutFcmTokenUseCase(di()));
   di.registerLazySingleton(() => NotificationHandler(di()));
   // ********** App Intro & Splash   **********
-  di.registerLazySingleton<DioAuthInterceptor>(() =>
-      DioAuthInterceptor(localDataSource: di()));
   di.registerLazySingleton<AppSessionLocalDataSource>(() =>
       AppSessionLocalDataSourceImpl(storage: di()));
   di.registerLazySingleton<AppSessionRepository>(() =>
@@ -218,47 +224,41 @@ Future<void> init() async {
           putFcmToken: di()));
   di.registerFactory(() => OnboardingBloc(completeOnboarding: di()));
 
-  // ********** Profile  **********
-  di.registerLazySingleton<GetCachedUserUsecase>(() =>
-      GetCachedUserUsecase(di()));
+// ********** Profile  **********
 
-  di.registerLazySingleton<GuardianRemoteDataSource>(() =>
-      GuardianRemoteDataSourceImpl(dio: di()));
-  di.registerLazySingleton<GuardianRepository>(() =>
-      GuardianRepositoryImpl(remoteDataSource: di()));
+// 1. Data Sources (أولاً)
+  di.registerLazySingleton<GuardianRemoteDataSource>(() => GuardianRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<GuardianLocalDataSource>(() => GuardianLocalDataSourceImpl(sharedPreferences: di()));
+  di.registerLazySingleton<StudentRemoteDataSource>(() => StudentRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<StudentLocalDataSource>(() => StudentLocalDataSourceImpl(sharedPreferences: di()));
+  di.registerLazySingleton<ProfileLocalDataSource>(() => ProfileLocalDataSourceImpl( sharedPreferences: di()));
+  di.registerLazySingleton<ProfileRemoteDataSource>(() => ProfileRemoteDataSourceImpl(dio: di()));
+
+// 2. Repositories (تعتمد على الـ Data Sources)
+  di.registerLazySingleton<ProfilePhotoRemoteDataSource>(() => ProfilePhotoRemoteDataSourceImpl(dio: di()),);
+  di.registerLazySingleton<GuardianRepository>(() => GuardianRepositoryImpl(remoteDataSource: di(), localDataSource: di()));
+  di.registerLazySingleton<StudentRepository>(() => StudentRepositoryImpl(remoteDataSource: di(), localDataSource: di()));
+  di.registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(localDataSource: di(), remoteDataSource: di(), networkInfo: di(), photoRemoteDataSource: di()));
+
+// 3. Use Cases (تعتمد على الـ Repositories)
+  di.registerLazySingleton<GetCachedUserUsecase>(() => GetCachedUserUsecase(di()));
   di.registerLazySingleton<GetChildrenUsecase>(() => GetChildrenUsecase(di()));
-  di.registerFactory(() => GuardianCubit(getChildrenUsecase: di()));
-
-  di.registerLazySingleton<StudentRemoteDataSource>(() =>
-      StudentRemoteDataSourceImpl(dio: di()));
-  di.registerLazySingleton<StudentRepository>(() =>
-      StudentRepositoryImpl(remoteDataSource: di()));
-  di.registerLazySingleton<GetAcademicInfoUsecase>(() =>
-      GetAcademicInfoUsecase(di()));
-  di.registerFactory(() =>
-      StudentCubit(
-        getAcademicInfoUsecase: di(),
-        getCachedUserUsecase: di(),
-      ));
-  di.registerFactory(() => MainCubit(getCachedUserUsecase: di()));
-  di.registerLazySingleton<ProfileLocalDataSource>(() =>
-      ProfileLocalDataSourceImpl(sharedPreferences: di()),);
-  di.registerLazySingleton<ProfileRemoteDataSource>(() =>
-      ProfileRemoteDataSourceImpl(dio: di()),);
-  di.registerLazySingleton<ProfileRepository>(() =>
-      ProfileRepositoryImpl(
-        localDataSource: di(), remoteDataSource: di(), networkInfo: di(),),);
+  di.registerLazySingleton<GetAcademicInfoUsecase>(() => GetAcademicInfoUsecase(di()));
   di.registerLazySingleton<SaveProfilePicture>(() => SaveProfilePicture(di()));
-  di.registerLazySingleton<GetProfilePicture>(() => GetProfilePicture(di()));
-  di.registerFactory(() =>
-      ProfilePictureBloc(
-        saveProfilePicture: di(),
-        getProfilePicture: di(),
-        getAppSession: di(),
-        // GetAppSessionUseCase — مسجّل أصلًا بقسم App Intro
-        saveAppSession: di(), // SaveAppSessionUseCase — مسجّل أصلًا بقسم App Intro
-      ));
+  di.registerLazySingleton<GetProfilePhotoUrlUseCase>(() => GetProfilePhotoUrlUseCase(repository: di()),);
 
+// 4. Cubits & Blocs (آخر شيء لأنها تعتمد على الـ Use Cases)
+  di.registerFactory(() => GuardianCubit(getChildrenUsecase: di()));
+  di.registerFactory(() => StudentCubit(getAcademicInfoUsecase: di(), getCachedUserUsecase: di()));
+  di.registerFactory(() => MainCubit(getCachedUserUsecase: di()));
+  di.registerFactory(() => ProfilePictureBloc(
+    saveProfilePicture: di(),
+    getAppSession: di(),
+    saveAppSession: di(),
+  ));
+
+// 5. Helpers
+  di.registerLazySingleton<SelectedChildHolder>(() => SelectedChildHolder());
   // ********** Alerts (جديد) **********
   di.registerLazySingleton<AlertRemoteDataSource>(() =>
       AlertRemoteDataSourceImpl(dio: di()));
@@ -304,8 +304,7 @@ Future<void> init() async {
   di.registerFactoryParam<AnnouncementsCubit, int?, void>((studentId, _) =>
       AnnouncementsCubit(
         getAnnouncementsUseCase: di(),
-        markAnnouncementAsReadUseCase: di(),
-        studentId: studentId,
+        studentId: studentId, markAnnouncementsAsReadUseCase: di(),
       ),
   );
 
@@ -317,5 +316,5 @@ Future<void> init() async {
   di.registerLazySingleton<GetUnreadActivitiesCountUseCase>(() => GetUnreadActivitiesCountUseCase(repository: di()));
   di.registerLazySingleton<MarkAllActivitiesAsReadUseCase>(() => MarkAllActivitiesAsReadUseCase(repository: di()));
 
-  di.registerFactoryParam<ActivitiesCubit, int?, void>((studentId, _) => ActivitiesCubit(getActivitiesUseCase: di(), markAllAsReadUseCase: di(), studentId: studentId,),);
+  di.registerFactoryParam<ActivitiesCubit, int?, void>((studentId, _) => ActivitiesCubit(getActivitiesUseCase: di(),studentId: studentId, markActivitiesAsReadUseCase: di(),),);
 }

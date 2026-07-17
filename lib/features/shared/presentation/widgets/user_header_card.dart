@@ -5,7 +5,6 @@ import '../../../profile/domain/use_cases/get_cached_user_usecase.dart';
 class UserHeaderCard extends StatefulWidget {
   final ColorScheme cs;
 
-  /// لو موجود، بيستخدم الاسم مباشرة (حالة رؤية حساب الابن مثلاً).
   final String? overrideName;
 
   const UserHeaderCard({
@@ -43,8 +42,6 @@ class _UserHeaderCardState extends State<UserHeaderCard> {
     final cs = widget.cs;
 
     return Container(
-      color: cs.surface,
-      child: Container(
         decoration: BoxDecoration(
           color: cs.primary,
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
@@ -137,7 +134,6 @@ class _UserHeaderCardState extends State<UserHeaderCard> {
             );
           },
         ),
-      ),
     );
   }
 }

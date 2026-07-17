@@ -12,9 +12,9 @@ import '../../features/app_intro/presentation/bloc/splash/splash_bloc.dart';
 import '../../features/app_intro/presentation/pages/onboarding_page.dart';
 import '../../features/app_intro/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/verification_page.dart';
 import '../../features/home/presentation/pages/child_shell_page.dart';
 import '../../features/home/presentation/pages/home_shell_page.dart';
-import '../../features/profile/domain/entities/child_card.dart';
 import '../../features/profile/presentation/pages/add_picture_page.dart';
 import '../../features/profile/presentation/pages/guardian.dart'; // صفحة ولي الأمر
 import '../../features/profile/presentation/pages/profile_page.dart'; // صفحة الـ Dashboard للطالب
@@ -24,6 +24,7 @@ import '../injector/injector_container.dart';
 import 'route_name.dart';
 import '../../features/home/presentation/pages/student_shell.dart'; // الـ Shell الجديد
 import '../../features/home/presentation/pages/services_page.dart'; // صفحة الخدمات
+import 'selected_child_holder.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -54,6 +55,13 @@ class AppRouter {
       GoRoute(
         path: RouteName.logIn,
         builder: (context, state) => const LoginPage(),
+      ),
+
+      GoRoute(
+        path: RouteName.verification,
+        builder: (context, state) => VerificationPage(
+          phoneNumber: state.extra as String,
+        ),
       ),
 
       // 4. Add Picture
@@ -113,15 +121,27 @@ class AppRouter {
           ),
         ],
       ),
+
+      // 8. الـ Stateful Shell Route الخاص بابن ولي الأمر
+      //
+      // تنبيه: ما منستخدم state.extra هون إطلاقًا — لأنو navigationShell.goBranch()
+      // (المستخدمة بـ ChildShellPage._onTap) ما بتمرر extra عند التنقل بين
+      // الفروع، فـ "type 'Null' is not a subtype of 'ChildCard'" كانت
+      // بتصير أول ما تضغط عالتبويب التاني. بدالها، منقرا من
+      // SelectedChildHolder (singleton ثابت عبر الـ DI)، يلي بينحدّث مرة
+      // وحدة بس من guardian.dart وقت الضغط على كارد الابن، وبضل صحيح بغض
+      // النظر عن أي تنقل بين التبويبات.
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
-          // نلتقط الـ ChildCard الممررة عبر الـ extra
-          final childCard = state.extra as ChildCard;
-
-          return ChildShellPage(
-            navigationShell: navigationShell,
-            child: childCard,
-          );
+          final child = di<SelectedChildHolder>().current;
+          if (child == null) {
+            // احتياط أمان — ما المفروض يصير أبدًا لو التنقل صار من
+            // guardian.dart بس (يلي بيحدّث الـ holder قبل التنقل مباشرة).
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return ChildShellPage(navigationShell: navigationShell, child: child);
         },
         branches: [
           // الفرع الأول: لوحة تحكم الابن (Dashboard)
@@ -130,11 +150,10 @@ class AppRouter {
               GoRoute(
                 path: ParentRouteName.childDashboard,
                 builder: (context, state) {
-                  final childCard = state.extra as ChildCard;
+                  final child = di<SelectedChildHolder>().current!;
                   return BlocProvider(
-                    // نمرر الـ ChildCard للـ Cubit مباشرة بدون طلب سيرفر
-                    create: (_) => di<StudentCubit>()..loadFromChildCard(childCard),
-                    child: const StudentDashboard(),
+                    create: (_) => di<StudentCubit>()..loadFromChildCard(child),
+                    child:  StudentDashboard(studentId: child.id,),
                   );
                 },
               ),
@@ -146,10 +165,10 @@ class AppRouter {
               GoRoute(
                 path: ParentRouteName.childServices,
                 builder: (context, state) {
-                  final childCard = state.extra as ChildCard;
+                  final child = di<SelectedChildHolder>().current!;
                   return ServicesPage(
-                    studentId: childCard.id,
-                    childName: childCard.fullName,
+                    studentId: child.id,
+                    childName: child.fullName,
                     extraCards: [
                       (
                       title: 'Financial',
@@ -165,6 +184,7 @@ class AppRouter {
           ),
         ],
       ),
+
       GoRoute(
         path: RouteName.alerts,
         builder: (context, state) => AlertsPage(studentId: state.extra as int?),

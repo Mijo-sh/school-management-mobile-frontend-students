@@ -1,4 +1,3 @@
-// presentation/features/alerts/alerts_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -26,8 +25,34 @@ class AlertsPage extends StatelessWidget {
   }
 }
 
-class _AlertsView extends StatelessWidget {
+class _AlertsView extends StatefulWidget {
   const _AlertsView();
+
+  @override
+  State<_AlertsView> createState() => _AlertsViewState();
+}
+
+class _AlertsViewState extends State<_AlertsView> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // بما أن التمرير معكوس (reverse: true)، فالوصول للأعلى (الأقدم) يعني الوصول لـ maxScrollExtent
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      context.read<AlertsCubit>().loadNextPage();
+    }
+  }
 
   String _dateLabel(DateTime date) {
     final now = DateTime.now();
@@ -133,10 +158,12 @@ class _AlertsView extends StatelessWidget {
 
                   final loaded = state as AlertsLoaded;
 
-                  // 1. ترتيب تصاعدي ثم عكس القائمة
-                  final sortedAndReversed = [...loaded.alerts]
+                  // 1. ترتيب تصاعدي حسب التاريخ لضمان تناسق الترتيب الزمني
+                  final sorted = [...loaded.alerts]
                     ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-                  final displayList = sortedAndReversed.reversed.toList();
+
+                  // 2. عكس القائمة بالكامل لأن الـ ListView تستخدم reverse: true وتبدأ من الأسفل
+                  final displayList = sorted.reversed.toList();
 
                   if (displayList.isEmpty) {
                     return const UnifiedEmptyView(
@@ -146,11 +173,27 @@ class _AlertsView extends StatelessWidget {
                   }
 
                   return ListView.builder(
-                    reverse: true, // البدء من الأسفل 👇
+                    controller: _scrollController, // ربط متحكم الـ Scroll لتتبع طلب الصفحات
+                    reverse: true, // البدء من التنبيهات الأحدث بالأسفل
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(14, 16, 14, 90),
-                    itemCount: displayList.length,
+                    // إضافة عنصر إضافي في الأعلى لعرض مؤشر التحميل عند جلب الصفحة التالية
+                    itemCount: displayList.length + (loaded.hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
+                      // إذا وصلنا لنهاية القائمة (الأعلى) وكان هناك صفحات أخرى، نعرض مؤشر تحميل
+                      if (index == displayList.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        );
+                      }
+
                       final alert = displayList[index];
 
                       final showDateLabel = index == displayList.length - 1 ||

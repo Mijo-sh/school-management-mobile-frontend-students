@@ -26,3 +26,7 @@ class ResendOtpRequested extends AuthEvent {
   @override
   List<Object?> get props => [phoneNumber];
 }
+
+class LogoutRequested extends AuthEvent {
+  const LogoutRequested();
+}

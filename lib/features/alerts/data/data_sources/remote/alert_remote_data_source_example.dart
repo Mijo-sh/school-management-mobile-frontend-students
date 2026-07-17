@@ -1,15 +1,12 @@
 import 'package:dio/dio.dart';
 import '../../../../../core/errors/exceptions.dart';
+import '../../../../shared/data/models/paginated_model.dart';
 import '../../models/alert_item_model.dart';
 
 abstract class AlertRemoteDataSource {
-  Future<List<AlertItemModel>> getAlerts({int? studentId});
+  Future<PaginatedModel<AlertItemModel>> getAlerts({int? studentId, int page = 1});
 
-  /// endpoint حقيقي وواحد للدورين (student_id اختياري يميّز بينهم).
   Future<int> getUnreadCount({int? studentId});
-
-  /// تصفير الكل دفعة وحدة — نفس نمط الإعلانات بالضبط، مش تعليم
-  /// عنصر واحد لحاله.
   Future<void> markAsRead({int? studentId});
 }
 
@@ -17,9 +14,6 @@ class AlertRemoteDataSourceImpl implements AlertRemoteDataSource {
   final Dio dio;
   AlertRemoteDataSourceImpl({required this.dio});
 
-  // المسارات منفصلة بالكامل حسب الدور — my-alerts للطالب (بدون أي
-  // parameter)، child-alerts لولي الأمر (مع student_id اختياري
-  // كـ query parameter، مش جزء من الرابط).
   String _alertsPath(int? studentId) {
     return studentId == null
         ? '/api/user/my-alerts'
@@ -27,13 +21,18 @@ class AlertRemoteDataSourceImpl implements AlertRemoteDataSource {
   }
 
   @override
-  Future<List<AlertItemModel>> getAlerts({int? studentId}) async {
+  Future<PaginatedModel<AlertItemModel>> getAlerts({int? studentId, int page = 1}) async {
     try {
-      final response = await dio.get(_alertsPath(studentId));
-      final list = (response.data['data'] as List<dynamic>? ?? []);
-      return list
-          .map((e) => AlertItemModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final response = await dio.get(
+        _alertsPath(studentId),
+        queryParameters: {'page': page},
+      );
+
+      // 3. تمرير نوع البيانات للـ Constructor الموحد PaginatedModel<AlertItemModel> 👇
+      return PaginatedModel<AlertItemModel>.fromJson(
+        response.data as Map<String, dynamic>,
+            (itemJson) => AlertItemModel.fromJson(itemJson as Map<String, dynamic>),
+      );
     } on ServerException {
       rethrow;
     } catch (e) {
@@ -48,7 +47,6 @@ class AlertRemoteDataSourceImpl implements AlertRemoteDataSource {
         '/api/user/alerts/unread-count',
         queryParameters: studentId != null ? {'student_id': studentId} : null,
       );
-      // الشكل الفعلي: {"data": {"alerts": N, "payment_alerts": N}}
       return (response.data['data']?['alerts'] as num?)?.toInt() ?? 0;
     } on ServerException {
       rethrow;
@@ -62,8 +60,9 @@ class AlertRemoteDataSourceImpl implements AlertRemoteDataSource {
     try {
       await dio.post(
         '/api/user/alerts/mark-all-read',
-        queryParameters: studentId != null ? {'student_id': studentId,'category':"general"} : {'category':"general"},
-
+        queryParameters: studentId != null
+            ? {'student_id': studentId, 'category': 'general'}
+            : {'category': 'general'},
       );
     } on ServerException {
       rethrow;

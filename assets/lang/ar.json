@@ -2,12 +2,12 @@
   "app_name" : "مدرستي",
 
   "onboarding_skip" : "تخطي",
-  "onboarding1_title" : "",
-  "onboarding2_title" : "",
-  "onboarding3_title" : "",
-  "onboarding1_description" : "",
-  "onboarding2_description" : "",
-  "onboarding3_description" : "",
+  "onboarding1_title" : "الملف الشخصي والجدول اليومي",
+  "onboarding2_title" : "الواجبات والامتحانات والتدريب",
+  "onboarding3_title" : "التقدّم والتواصل والمدفوعات",
+  "onboarding1_description" : "وصول سريع لملف الطالب، جدول الحصص، وحالة الحضور مع نظرة للأهل",
+  "onboarding2_description" : "عرض الواجبات، جداول الامتحانات، أسئلة تدريبية وقائمة مهام مشتركة للأهل والطلاب",
+  "onboarding3_description" : "متابعة الدرجات وتقييمات المعلمين، استلام الإشعارات والأنشطة، وإدارة الرسوم وحجز الجلسات",
 
   "month_january" : "كانون الثاني",
   "month_february" : "شباط",
@@ -28,5 +28,21 @@
   "day_wednesday" : "أربعاء",
   "day_thursday" : "خميس",
   "day_friday" : "جمعة",
-  "day_saturday" : "سبت"
+  "day_saturday" : "سبت",
+
+  "drawer_theme" : "الثيم",
+  "drawer_language" : "اللغة",
+  "drawer_change_picture" : "تغيير الصورة الشخصية",
+  "drawer_show_schedule" : "عرض برنامج الأسبوع",
+  "drawer_set_time" : "تحديد الأوقات المتاحة للمواعيد",
+  "drawer_show_holidays" : "عرض العطل الرسمية",
+  "drawer_show_vacations" : "عرض الإجازات والغيابات",
+  "drawer_about_school" : "عن المدرسة",
+  "drawer_help_us" : "المساعدة",
+  "drawer_log_out" : "تسجيل الخروج",
+
+  "button_cancel": "إلغاء",
+  "log_out_title" : "تأكيد تسجيل الخروج",
+  "log_out_content" : "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+  "log_out_confirm" : "تسجيل الخروج"
 }

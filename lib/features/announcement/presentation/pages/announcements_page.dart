@@ -1,8 +1,8 @@
-// presentation/features/announcements/announcements_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/injector/injector_container.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
 import '../../domain/entities/announcement_item.dart';
 import '../../../shared/presentation/widgets/curved_header_bar.dart';
 import '../../../shared/presentation/widgets/date_divider_chip.dart';
@@ -25,8 +25,34 @@ class AnnouncementsPage extends StatelessWidget {
   }
 }
 
-class _AnnouncementsView extends StatelessWidget {
+class _AnnouncementsView extends StatefulWidget {
   const _AnnouncementsView();
+
+  @override
+  State<_AnnouncementsView> createState() => _AnnouncementsViewState();
+}
+
+class _AnnouncementsViewState extends State<_AnnouncementsView> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // التمرير المعكوس (reverse: true): الوصول للأقدم يعني التمرير نحو نهاية الـ Scroll
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      context.read<AnnouncementsCubit>().loadNextPage();
+    }
+  }
 
   String _dateLabel(DateTime date) {
     final now = DateTime.now();
@@ -49,15 +75,18 @@ class _AnnouncementsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
+    printAllSharedPreferences();
+    printAllSecureData();
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: cs.surface,
         body: Column(
           children: [
-            const CurvedHeaderBar(title: 'الإعلانات'),
-            Expanded(
+            const CurvedHeaderBar(
+              title: 'الإعلانات',
+              backgroundImage: 'assets/images/background_login.jpg',
+            ),            Expanded(
               child: BlocBuilder<AnnouncementsCubit, AnnouncementsState>(
                 builder: (context, state) {
                   if (state is AnnouncementsLoading || state is AnnouncementsInitial) {
@@ -73,10 +102,10 @@ class _AnnouncementsView extends StatelessWidget {
 
                   final loaded = state as AnnouncementsLoaded;
 
-                  // 1. ترتيب تصاعدي ثم عكس القائمة
-                  final sortedAndReversed = [...loaded.announcements]
+                  // ترتيب تصاعدي حسب التاريخ
+                  final sorted = [...loaded.announcements]
                     ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-                  final displayList = sortedAndReversed.reversed.toList();
+                  final displayList = sorted.reversed.toList();
 
                   if (displayList.isEmpty) {
                     return const UnifiedEmptyView(
@@ -86,11 +115,25 @@ class _AnnouncementsView extends StatelessWidget {
                   }
 
                   return ListView.builder(
-                    reverse: true, // البدء من الأسفل 👇
+                    controller: _scrollController,
+                    reverse: true, // البدء من الأحدث في الأسفل 👇
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(14, 16, 14, 90),
-                    itemCount: displayList.length,
+                    itemCount: displayList.length + (loaded.hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
+                      if (index == displayList.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        );
+                      }
+
                       final item = displayList[index];
 
                       final showDateLabel = index == displayList.length - 1 ||
@@ -118,6 +161,7 @@ class _AnnouncementsView extends StatelessWidget {
                             padding: const EdgeInsets.only(bottom: 10),
                             child: UnifiedBubbleTile(
                               title: item.title,
+                              description: item.description,
                               timeLabel: _timeLabel(item.createdAt),
                               isUnread: !item.isRead,
                               leadingIcon: leadingIcon,

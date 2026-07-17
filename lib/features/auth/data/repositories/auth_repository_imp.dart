@@ -83,14 +83,17 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, Unit>> logout() async {
     try {
+      await remoteDataSource.logout();
       await localDataSource.clear();
       await sessionRepository.deleteSession();
+
       return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
     } on CacheException {
       return const Left(CacheFailure());
     }
   }
-
   @override
   Future<Either<Failure, UserEntity?>> getCachedUser() async {
     try {

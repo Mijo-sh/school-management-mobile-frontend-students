@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/injector/injector_container.dart';
 import '../../../../core/notifications/domain/repositories/push_notification_repository.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../shared/presentation/widgets/user_header_card.dart';
 import '../widgets/service_card_tile.dart';
 
@@ -64,12 +65,10 @@ class _ServicesPageState extends State<ServicesPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: cs.surface,
+    return Scaffold(
+      backgroundColor: cs.surface,
         body: Column(
           children: [
-            // استخدام المكون المشترك الجديد هنا وبأي شاشة أخرى
             UserHeaderCard(cs: cs, overrideName: widget.childName),
             Expanded(
               child: SingleChildScrollView(
@@ -92,7 +91,6 @@ class _ServicesPageState extends State<ServicesPage> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -102,7 +100,7 @@ class _ServicesPageState extends State<ServicesPage> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 10,
+        crossAxisSpacing: 8,
         mainAxisSpacing: 10,
         childAspectRatio: 0.82,
       ),

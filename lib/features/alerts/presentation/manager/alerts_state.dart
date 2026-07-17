@@ -17,12 +17,25 @@ class AlertsLoading extends AlertsState {
 
 class AlertsLoaded extends AlertsState {
   final List<AlertItem> alerts;
-  const AlertsLoaded(this.alerts);
+  final bool hasMore; // مضاف لمعرفة إن كان هناك صفحات أخرى بالـ API 👇
+
+  const AlertsLoaded(this.alerts, {this.hasMore = false});
 
   int get unreadCount => alerts.where((a) => !a.isRead).length;
 
+  // نسخ الحالة الحالية مع تعديل بعض القيم
+  AlertsLoaded copyWith({
+    List<AlertItem>? alerts,
+    bool? hasMore,
+  }) {
+    return AlertsLoaded(
+      alerts ?? this.alerts,
+      hasMore: hasMore ?? this.hasMore,
+    );
+  }
+
   @override
-  List<Object?> get props => [alerts];
+  List<Object?> get props => [alerts, hasMore]; // إضافة الـ hasMore هنا
 }
 
 class AlertsError extends AlertsState {

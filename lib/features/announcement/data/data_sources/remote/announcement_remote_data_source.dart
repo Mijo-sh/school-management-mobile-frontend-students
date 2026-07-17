@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
 import '../../../../../core/errors/exceptions.dart';
+import '../../../../shared/data/models/paginated_model.dart';
 import '../../models/announcement_item_model.dart';
 
 abstract class AnnouncementRemoteDataSource {
-  Future<List<AnnouncementItemModel>> getAnnouncements({int? studentId});
+  Future<PaginatedModel<AnnouncementItemModel>> getAnnouncements({int? studentId, int page = 1});
 
   /// endpoint حقيقي وواحد للدورين (student_id اختياري يميّز بينهم).
   Future<int> getUnreadCount({int? studentId});
@@ -22,19 +23,19 @@ class AnnouncementRemoteDataSourceImpl implements AnnouncementRemoteDataSource {
         ? '/api/user/my-announcements'
         : '/api/user/child-announcements';
   }
-
   @override
-  Future<List<AnnouncementItemModel>> getAnnouncements({int? studentId}) async {
+  Future<PaginatedModel<AnnouncementItemModel>> getAnnouncements({int? studentId, int page = 1}) async {
     try {
       final response = await dio.get(
         _path(studentId),
-        queryParameters: studentId != null ? {'student_id': studentId} : null,
+        queryParameters: {'page': page},
       );
 
-      final list = (response.data['data'] as List<dynamic>? ?? []);
-      return list
-          .map((e) => AnnouncementItemModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      // تفكيك الـ JSON واستدعاء الـ Factory الموحد للـ Announcement 👈
+      return PaginatedModel<AnnouncementItemModel>.fromJson(
+        response.data as Map<String, dynamic>,
+            (itemJson) => AnnouncementItemModel.fromJson(itemJson as Map<String, dynamic>),
+      );
     } on ServerException {
       rethrow;
     } catch (e) {

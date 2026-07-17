@@ -16,11 +16,14 @@ class StudentLoading extends StudentState {
 
 class StudentLoaded extends StudentState {
   final String studentName;
+  final String? photoUrl;
   final AcademicInfo academicInfo;
 
   const StudentLoaded({
     required this.studentName,
-    required this.academicInfo,
+    this.photoUrl,
+    required this.academicInfo, String? studentPhotoUrl,
+
   });
 
   @override

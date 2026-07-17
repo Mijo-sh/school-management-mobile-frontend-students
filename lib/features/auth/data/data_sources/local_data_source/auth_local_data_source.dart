@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../core/cache/cache_keys.dart';
 import '../../../../../core/errors/exceptions.dart';
 import '../../../../shared/data/models/user_model.dart';
@@ -14,8 +15,12 @@ abstract class AuthLocalDataSource {
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   final FlutterSecureStorage secureStorage;
-  AuthLocalDataSourceImpl({required this.secureStorage});
+  final SharedPreferences sharedPreferences;
 
+  AuthLocalDataSourceImpl({
+    required this.secureStorage,
+    required this.sharedPreferences,
+  });
   @override
   Future<void> cacheToken(String token) async {
     try {
@@ -56,13 +61,23 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       throw CacheException();
     }
   }
-
   @override
   Future<void> clear() async {
     try {
-      await secureStorage.delete(key: CacheKeys.token);
-      await secureStorage.delete(key: CacheKeys.user);
-    } catch (_) {
+      print("🧹 [AuthLocalDataSource]: بدأت عملية مسح التخزين...");
+
+      // 1. مسح الـ Secure Storage
+      await secureStorage.deleteAll();
+      print("✅ [AuthLocalDataSource]: تم مسح SecureStorage.");
+
+      // 2. مسح الـ SharedPreferences
+      await sharedPreferences.clear();
+      print("✅ [AuthLocalDataSource]: تم مسح SharedPreferences.");
+
+    } catch (e, st) {
+      // هذه الطباعة ستكشف لنا تماماً أين يقع الانهيار
+      print("🚨 [AuthLocalDataSource]: فشل المسح بسبب: $e");
+      print("StackTrace: $st");
       throw CacheException();
     }
   }

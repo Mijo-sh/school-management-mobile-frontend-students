@@ -24,4 +24,16 @@ class ChildCardModel extends ChildCard {
       gender: json['gender']?.toString() ?? '',
     );
   }
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'first_name': firstName,
+      'father_name': fatherName,
+      'last_name': lastName,
+      'student_photo_url': studentPhotoUrl,
+      'grade_name': gradeName,
+      'class_room_name': classNumber,
+      'gender': gender,
+    };
+  }
 }

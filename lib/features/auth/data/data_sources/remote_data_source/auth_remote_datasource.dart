@@ -9,10 +9,12 @@ abstract class AuthRemoteDataSource {
     required String phoneNumber,
     required String otp,
   });
+  Future<String> logout();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio dio;
+
   AuthRemoteDataSourceImpl({required this.dio});
 
   @override
@@ -52,10 +54,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
-  Future<String> _postForMessage(
-      String path,
-      Map<String, dynamic> queryParameters,
-      ) async {
+  Future<String> _postForMessage(String path,
+      Map<String, dynamic> queryParameters,) async {
     try {
       final response = await dio.post(path, queryParameters: queryParameters);
       final data = response.data;
@@ -91,5 +91,38 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return 'تعذّر الاتصال بالخادم، تحقّق من الإنترنت';
     }
     return 'خطأ في الخادم، حاول مجدداً';
+  }
+
+  @override
+  Future<String> logout() async {
+    try {
+      // الـ Interceptor سيقوم بإضافة الـ Authorization Header تلقائياً
+      final response = await dio.post(
+        '/api/user/logout',
+        options: Options(
+          headers: {
+            'Accept': 'application/json', // أضفنا هذا للتأكد من توافق Laravel
+          },
+        ),
+      );
+
+      final data = response.data;
+      if (data is Map && data['status'] == false) {
+        throw ServerException(
+          message: data['message']?.toString() ?? 'فشل تسجيل الخروج',
+        );
+      }
+
+      return (data is Map ? data['message']?.toString() : null) ?? 'تم بنجاح';
+    } on DioException catch (e) {
+      // إذا حصلنا على 401، فهذا يعني أن التوكين غير صالح بالفعل
+      // نعتبر العملية ناجحة لكي نكمل مسح الكاش محلياً
+      if (e.response?.statusCode == 401) {
+        return 'تم تسجيل الخروج';
+      }
+      throw ServerException(message: _extractMessage(e));
+    } catch (e) {
+      throw const ServerException();
+    }
   }
 }

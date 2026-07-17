@@ -17,10 +17,25 @@ class AnnouncementsLoading extends AnnouncementsState {
 
 class AnnouncementsLoaded extends AnnouncementsState {
   final List<AnnouncementItem> announcements;
-  const AnnouncementsLoaded(this.announcements);
+  final bool hasMore;
+
+  const AnnouncementsLoaded(this.announcements, {this.hasMore = false});
+
+  /// حساب عدد الإعلانات غير المقروءة في القائمة الحالية تلقائياً
+  int get unreadCount => announcements.where((a) => !a.isRead).length;
+
+  AnnouncementsLoaded copyWith({
+    List<AnnouncementItem>? announcements,
+    bool? hasMore,
+  }) {
+    return AnnouncementsLoaded(
+      announcements ?? this.announcements,
+      hasMore: hasMore ?? this.hasMore,
+    );
+  }
 
   @override
-  List<Object?> get props => [announcements];
+  List<Object?> get props => [announcements, hasMore];
 }
 
 class AnnouncementsError extends AnnouncementsState {

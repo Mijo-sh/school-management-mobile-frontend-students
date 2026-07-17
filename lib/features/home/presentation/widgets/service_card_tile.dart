@@ -46,13 +46,16 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
   Widget build(BuildContext context) {
     final card = widget.card;
     final studentId = widget.studentId;
+    final cs = Theme.of(context).colorScheme;
 
     final tile = InkWell(
       onTap: () => _onTap(context),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? cs.surfaceContainerHigh
+              : Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -83,10 +86,10 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
               child: Text(
                 card.title,
-                style: const TextStyle(
-                  fontSize: 10,
+                style:  TextStyle(
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A2E),
+                  color: cs.onSurface,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,

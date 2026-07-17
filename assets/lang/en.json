@@ -2,12 +2,12 @@
   "app_name" : "Madrasati",
 
   "onboarding_skip" : "Skip",
-  "onboarding1_title" : "",
-  "onboarding2_title" : "",
-  "onboarding3_title" : "",
-  "onboarding1_description" : "",
-  "onboarding2_description" : "",
-  "onboarding3_description" : "",
+  "onboarding1_title" : "Profile and Daily Schedule",
+  "onboarding2_title" : "Homework, Exams and Practice",
+  "onboarding3_title" : "Progress, Communication and Payments",
+  "onboarding1_description" : "Quick access to student profile, class timetable, attendance, and parent overview in one place",
+  "onboarding2_description" : "View assignments, exam schedules, practice questions, and a shared to‑do list for students and parents",
+  "onboarding3_description" : "Track grades and teacher feedback, receive announcements, manage fees and payment status, and book counseling sessions",
 
   "month_january" : "January",
   "month_february" : "February",
@@ -28,5 +28,22 @@
   "day_wednesday" : "Wed",
   "day_thursday" : "Thu",
   "day_friday" : "Fri",
-  "day_saturday" : "Sat"
+  "day_saturday" : "Sat",
+
+  "drawer_theme" : "Theme",
+  "drawer_language" : "Language",
+  "drawer_change_picture" : "Change profile picture",
+  "drawer_show_schedule" : "Show week schedule",
+  "drawer_set_time" : "Set time available for appointments",
+  "drawer_show_holidays" : "Show holidays",
+  "drawer_show_vacations" : "Show vacations and absences",
+  "drawer_about_school" : "About school",
+  "drawer_help_us" : "Help us",
+  "drawer_log_out" : "Log out",
+
+  "button_cancel": "Cancel",
+
+  "log_out_title" : "Confirm log out",
+  "log_out_content" : "Are you sure you want to log out?",
+  "log_out_confirm" : "Log out"
 }

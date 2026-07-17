@@ -17,10 +17,24 @@ class ActivitiesLoading extends ActivitiesState {
 
 class ActivitiesLoaded extends ActivitiesState {
   final List<ActivityItem> activities;
-  const ActivitiesLoaded(this.activities);
+  final bool hasMore;
+
+  const ActivitiesLoaded(this.activities, {this.hasMore = false});
+
+  int get unreadCount => activities.where((a) => !a.isRead).length;
+
+  ActivitiesLoaded copyWith({
+    List<ActivityItem>? activities,
+    bool? hasMore,
+  }) {
+    return ActivitiesLoaded(
+      activities ?? this.activities,
+      hasMore: hasMore ?? this.hasMore,
+    );
+  }
 
   @override
-  List<Object?> get props => [activities];
+  List<Object?> get props => [activities, hasMore];
 }
 
 class ActivitiesError extends ActivitiesState {

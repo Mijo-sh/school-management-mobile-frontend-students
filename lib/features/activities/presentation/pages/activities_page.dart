@@ -1,4 +1,3 @@
-// presentation/features/activities/activities_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -24,22 +23,56 @@ class ActivitiesPage extends StatelessWidget {
   }
 }
 
-class _ActivitiesView extends StatelessWidget {
+class _ActivitiesView extends StatefulWidget {
   const _ActivitiesView();
 
+  @override
+  State<_ActivitiesView> createState() => _ActivitiesViewState();
+}
+
+class _ActivitiesViewState extends State<_ActivitiesView> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      context.read<ActivitiesCubit>().loadNextPage();
+    }
+  }
+
+  // 👇 نفس الدالتين حرفيًا من alerts_page.dart — بس على createdAt.
   String _dateLabel(DateTime date) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(date.year, date.month, date.day);
-    final diff = target.difference(today).inDays;
+    final diff = today.difference(target).inDays;
 
     if (diff == 0) return 'اليوم';
-    if (diff == 1) return 'غدًا';
-    if (diff == -1) return 'أمس';
+    if (diff == 1) return 'أمس';
     return '${date.day}/${date.month}/${date.year}';
   }
 
-  String _formatTime(String raw) {
+  String _timeLabel(DateTime date) {
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour < 12 ? 'ص' : 'م';
+    return '$hour:$minute $period';
+  }
+
+  // شرائح تفاصيل الفعالية نفسها (موعدها الفعلي) — منفصلة عن
+  // createdAt، معلومة إضافية بس زي meta بـ alerts.
+  String _formatEventTime(String raw) {
     final parts = raw.split(':');
     if (parts.length < 2) return raw;
     final hour24 = int.tryParse(parts[0]) ?? 0;
@@ -49,7 +82,7 @@ class _ActivitiesView extends StatelessWidget {
     return '$hour12:$minute $period';
   }
 
-  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
+  String _formatEventDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +94,10 @@ class _ActivitiesView extends StatelessWidget {
         backgroundColor: cs.surface,
         body: Column(
           children: [
-            const CurvedHeaderBar(title: 'الأنشطة'),
+            const CurvedHeaderBar(
+              title: 'الانشطة',
+              backgroundImage: 'assets/images/background_login.jpg',
+            ),
             Expanded(
               child: BlocBuilder<ActivitiesCubit, ActivitiesState>(
                 builder: (context, state) {
@@ -77,11 +113,9 @@ class _ActivitiesView extends StatelessWidget {
                   }
 
                   final loaded = state as ActivitiesLoaded;
-
-                  // 1. نرتبها تصاعدياً بالتاريخ، ثم نعكس المصفوفة لتتوافق مع reverse: true
-                  final sortedAndReversed = [...loaded.activities]
-                    ..sort((a, b) => a.activityDate.compareTo(b.activityDate));
-                  final displayList = sortedAndReversed.reversed.toList();
+                  final sorted = [...loaded.activities]
+                    ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                  final displayList = sorted.reversed.toList();
 
                   if (displayList.isEmpty) {
                     return const UnifiedEmptyView(
@@ -91,16 +125,30 @@ class _ActivitiesView extends StatelessWidget {
                   }
 
                   return ListView.builder(
-                    reverse: true, // البدء من الأسفل 👇
+                    controller: _scrollController,
+                    reverse: true,
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(14, 16, 14, 90),
-                    itemCount: displayList.length,
+                    itemCount: displayList.length + (loaded.hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
+                      if (index == displayList.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        );
+                      }
+
                       final item = displayList[index];
 
-                      // بما أن المصفوفة معكوسة، شرط إظهار التاريخ يعتمد على العنصر التالي في القائمة المعكوسة (الذي يسبقه زمنياً)
+                      // 👇 مقارنة على createdAt، بالظبط متل alerts_page.dart
                       final showDateLabel = index == displayList.length - 1 ||
-                          _dateLabel(displayList[index + 1].activityDate) != _dateLabel(item.activityDate);
+                          _dateLabel(displayList[index + 1].createdAt) != _dateLabel(item.createdAt);
 
                       final leadingIcon = Container(
                         width: 45,
@@ -110,26 +158,26 @@ class _ActivitiesView extends StatelessWidget {
                           shape: BoxShape.circle,
                           color: cs.primary.withOpacity(0.12),
                         ),
-                        child: Image.asset(
-                          'assets/images/activities.png',
-                          errorBuilder: (_, __, ___) => Icon(Icons.emoji_events_rounded, color: cs.primary),
-                        ),
+                        child: Image.asset('assets/images/activity.png'),
                       );
 
+                      // شرائح موعد الفعالية الفعلي (تاريخ ووقت الحدث نفسو)
                       final chips = [
-                        _chip(cs, 'التاريخ', _formatDate(item.activityDate)),
-                        _chip(cs, 'الوقت', '${_formatTime(item.startTime)} - ${_formatTime(item.endTime)}'),
+                        _chip(cs, 'التاريخ', _formatEventDate(item.activityDate)),
+                        _chip(cs, 'الوقت', '${_formatEventTime(item.startTime)} - ${_formatEventTime(item.endTime)}'),
                       ];
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          if (showDateLabel) DateDividerChip(label: _dateLabel(item.activityDate)),
+                          if (showDateLabel) DateDividerChip(label: _dateLabel(item.createdAt)),
                           Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: UnifiedBubbleTile(
                               title: item.activityName.replaceAll('_', ' '),
-                              timeLabel: '',
+                              description: item.description,
+                              // 👇 وقت الفقاعة صار من createdAt، بالظبط متل alerts
+                              timeLabel: _timeLabel(item.createdAt),
                               isUnread: !item.isRead,
                               leadingIcon: leadingIcon,
                               detailsChips: chips,
