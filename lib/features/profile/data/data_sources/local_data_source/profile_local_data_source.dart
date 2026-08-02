@@ -24,6 +24,14 @@ abstract class ProfileLocalDataSource {
 
   /// يرجع رابط السيرفر المخزَّن سابقًا إن وُجد.
   Future<String?> getRemoteUrl();
+
+  /// يخزّن آخر رابط صورة ناجح لعرض الأفاتار (مختلف عن saveRemoteUrl
+  /// يلي خاصة برفع صورة المستخدم نفسو بس) — لكل studentId مفتاح
+  /// منفصل (كل ابن إله نسخته لحاله عند ولي الأمر).
+  Future<void> cachePhotoUrl(String url, {int? studentId});
+
+  /// يرجع آخر رابط صورة محفوظ لعرض الأفاتار، أو null لو ما في شي.
+  Future<String?> getCachedPhotoUrl({int? studentId});
 }
 
 class ProfileLocalDataSourceImpl implements ProfileLocalDataSource {
@@ -100,6 +108,27 @@ class ProfileLocalDataSourceImpl implements ProfileLocalDataSource {
   Future<String?> getRemoteUrl() async {
     try {
       return sharedPreferences.getString(_kProfilePictureRemoteUrlKey);
+    } catch (e) {
+      throw CacheException();
+    }
+  }
+
+  String _photoUrlKey(int? studentId) =>
+      'CACHED_PHOTO_URL_${studentId?.toString() ?? 'self'}';
+
+  @override
+  Future<void> cachePhotoUrl(String url, {int? studentId}) async {
+    try {
+      await sharedPreferences.setString(_photoUrlKey(studentId), url);
+    } catch (e) {
+      throw CacheException();
+    }
+  }
+
+  @override
+  Future<String?> getCachedPhotoUrl({int? studentId}) async {
+    try {
+      return sharedPreferences.getString(_photoUrlKey(studentId));
     } catch (e) {
       throw CacheException();
     }

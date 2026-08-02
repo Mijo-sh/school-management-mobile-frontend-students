@@ -2,9 +2,11 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/injector/injector_container.dart';
+import '../../../../core/unread_counts_store.dart';
 import '../../../profile/domain/entities/child_card.dart';
 
-class ChildShellPage extends StatelessWidget {
+class ChildShellPage extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
   final ChildCard child;
 
@@ -14,11 +16,31 @@ class ChildShellPage extends StatelessWidget {
     required this.child,
   });
 
+  @override
+  State<ChildShellPage> createState() => _ChildShellPageState();
+}
+
+class _ChildShellPageState extends State<ChildShellPage> {
+  @override
+  void initState() {
+    super.initState();
+    // نفس مبدأ StudentShell بالظبط، بس هون studentId = id الابن.
+    di<UnreadCountsStore>().loadAll(studentId: widget.child.id);
+  }
+
+  @override
+  void didUpdateWidget(covariant ChildShellPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // لو تبدّل الابن (نادر بنفس مكان الـ widget، بس احتياط) نعيد التحميل.
+    if (oldWidget.child.id != widget.child.id) {
+      di<UnreadCountsStore>().loadAll(studentId: widget.child.id);
+    }
+  }
+
   void _onTap(int index) {
-    // نمرر الـ child كـ extra عند الانتقال بين الفروع للحفاظ على توافر البيانات في الفروع المختلفة
-    navigationShell.goBranch(
+    widget.navigationShell.goBranch(
       index,
-      initialLocation: index == navigationShell.currentIndex,
+      initialLocation: index == widget.navigationShell.currentIndex,
     );
   }
 
@@ -28,9 +50,10 @@ class ChildShellPage extends StatelessWidget {
 
     return SafeArea(
       child: Scaffold(
+        backgroundColor: const Color(0xFF121212),
         extendBody: true,
         bottomNavigationBar: CurvedNavigationBar(
-          index: navigationShell.currentIndex,
+          index: widget.navigationShell.currentIndex,
           height: 60,
           backgroundColor: Colors.transparent,
           color: cs.primary,
@@ -41,9 +64,11 @@ class ChildShellPage extends StatelessWidget {
           items: [
             Icon(Icons.home_rounded, color: cs.onPrimary, size: 26),
             Icon(Icons.grid_view_rounded, color: cs.onPrimary, size: 26),
+           // Icon(Icons.chat_bubble_outline, color: cs.onPrimary, size: 26),
+
           ],
         ),
-        body: navigationShell, // يعرض الفرع النشط تلقائياً
+        body: widget.navigationShell,
       ),
     );
   }

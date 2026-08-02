@@ -45,5 +45,45 @@
 
   "log_out_title" : "Confirm log out",
   "log_out_content" : "Are you sure you want to log out?",
-  "log_out_confirm" : "Log out"
+  "log_out_confirm" : "Log out",
+
+
+  "help_us_message" : "Click the button to contact the technical team on Telegram or scan the QR code",
+  "help_us_button" : "Open Telegram",
+
+  "rating_excellent": "Excellent",
+  "rating_very_good": "Very Good",
+  "rating_good": "Good",
+  "rating_average": "Average",
+  "rating_weak": "Weak",
+  "rating_general": "Evaluation",
+  "ai_chat_title": "AI Assistant",
+  "ai_chat_new_conversation": "New Conversation",
+  "ai_chat_previous_conversations": "Previous Conversations",
+  "ai_chat_no_previous_conversations": "No previous conversations",
+  "ai_chat_message_count": "messages",
+  "ai_chat_rename_title": "Rename Conversation",
+  "ai_chat_rename_hint": "Conversation name",
+  "ai_chat_empty_state": "Start a new conversation, ask anything 👋",
+  "ai_chat_input_hint": "Type your message...",
+
+  "daily_tasks_dashboard_title": "Today's Plan",
+  "daily_tasks_view_all": "View All",
+  "daily_tasks_empty_dashboard": "No tasks yet today — add your plan 👆",
+  "daily_tasks_more_count": "more tasks",
+  "daily_tasks_new_task": "New Task",
+  "daily_tasks_title_field": "Title",
+  "daily_tasks_description_field": "Description (optional)",
+  "daily_tasks_time_field": "Time (optional) — e.g. 5:00 PM",
+  "daily_tasks_add_button": "Add",
+  "daily_tasks_page_title": "My Day Plan",
+  "daily_tasks_today_prefix": "Today —",
+  "daily_tasks_view_only_notice": "View only — you can't edit a past day",
+  "daily_tasks_empty_today": "No tasks today — tap + to add",
+  "daily_tasks_empty_past": "No tasks on this date",
+  "daily_tasks_browse_archive": "Browse previous days",
+
+  "school_rule":"School Rules "
+
+
 }

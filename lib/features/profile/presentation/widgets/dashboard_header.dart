@@ -1,13 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/routing/route_name.dart';
 import '../manager/student_cubit.dart';
+import '../pages/authenticated_avatar.dart';
 
 class DashboardHeader extends StatelessWidget {
   final StudentLoaded data;
   final GlobalKey<ScaffoldState> scaffoldKey;
+
+  /// null = الطالب نفسو، موجود = ولي أمر عم يشوف داشبورد ابن معيّن.
+  final int? studentId;
+
+  /// بيتغيّر بس عند السحب اليدوي للتحديث (Pull-to-Refresh) — منمررها
+  /// كـ key للأفاتار عشان تجبرها تعيد جلب الصورة من الصفر.
+  final int avatarRefreshTick;
+
   static const double _expandedHeight = 300.0;
   static const double _collapsedHeight = 80.0;
 
-  const DashboardHeader({super.key, required this.data, required this.scaffoldKey, int? studentId});
+  const DashboardHeader({
+    super.key,
+    required this.data,
+    required this.scaffoldKey,
+    this.studentId,
+    this.avatarRefreshTick = 0,
+  });
 
   String _initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -42,7 +59,7 @@ class DashboardHeader extends StatelessWidget {
           final double maxH = _expandedHeight + statusBarHeight;
           final double collapseRatio = ((constraints.maxHeight - _collapsedHeight) / (maxH - _collapsedHeight)).clamp(0.0, 1.0);
           final Color textColor = isLight ? Colors.white : Colors.grey[900]!;
-          final double imageSize = (115 * collapseRatio).clamp(0.0, 115.0);
+          final double imageSize = (140 * collapseRatio).clamp(0.0, 140.0);
           final double fontSize = (19 * collapseRatio).clamp(0.0, 19.0);
           final double subSize = (13 * collapseRatio).clamp(0.0, 13.0);
 
@@ -75,12 +92,29 @@ class DashboardHeader extends StatelessWidget {
                             icon: Icon(Icons.menu_rounded, color: textColor, size: 28),
                             onPressed: () => scaffoldKey.currentState?.openDrawer(),
                           ),
+                          const Spacer(),
+                          // سهم الرجوع لقائمة الأبناء — بيظهر بس لو ولي
+                          // أمر عم يشوف داشبورد ابن.
+                          if (studentId != null)
+                            IconButton(
+                              icon: Icon(Icons.arrow_forward_rounded, color: textColor, size: 26),
+                              onPressed: () => context.go(ParentRouteName.home),
+                            ),
                         ]),
                         // داخل الـ Column المسؤول عن الـ Expanded content في ملف dashboard_header.dart
-                        if (imageSize > 0)
-                          Container(
-                            width: imageSize,
-                            height: imageSize,
+                        Visibility(
+                          // 👇 maintainState: true هو السطر الحاسم — بيخلي
+                          // فلاتر يحافظ على الـ State (والـ Future المخزّنة
+                          // فيها) حتى لما الـ widget تختفي مؤقتًا أثناء
+                          // أنيميشن السحب، بدل ما يمسحها ويعيد إنشاءها من
+                          // الصفر (يلي كان يسبب طلب صورة جديد كل مرة).
+                          visible: imageSize > 0,
+                          maintainState: true,
+                          maintainAnimation: true,
+                          maintainSize: false,
+                          child: Container(
+                            width: imageSize > 0 ? imageSize : 1,
+                            height: imageSize > 0 ? imageSize : 1,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.all(Radius.circular(20 * collapseRatio)),
                               border: Border.all(
@@ -94,15 +128,18 @@ class DashboardHeader extends StatelessWidget {
                                   offset: const Offset(0, 5),
                                 ),
                               ],
-                              // 👇 التعديل هنا لربط الرابط بالصورة
-                              image: DecorationImage(
-                                image: data.photoUrl != null && data.photoUrl!.isNotEmpty
-                                    ? NetworkImage(data.photoUrl!) as ImageProvider
-                                    : const AssetImage('assets/images/profile.jpg'),
-                                fit: BoxFit.cover,
-                              ),
+                            ),
+                            // 👇 الصورة صارت موثّقة (بتحمل التوكن) وبتخزّن
+                            // بايتاتها محليًا تلقائيًا، بدل NetworkImage الخام.
+                            child: AuthenticatedAvatar(
+                              key: ValueKey('avatar_expanded_$avatarRefreshTick'),
+                              studentId: studentId,
+                              size: imageSize > 0 ? imageSize : 1,
+                              borderRadius: BorderRadius.circular(20 * collapseRatio),
+                              fallback: Icon(Icons.person_rounded, size: imageSize * 0.5, color: isLight ? Colors.white : Colors.grey[700]),
                             ),
                           ),
+                        ),
                         const SizedBox(height: 12),
                         Text(studentName, style: TextStyle(color: textColor, fontSize: fontSize, fontWeight: FontWeight.bold)),
                         Text('$gradeName — $className', style: TextStyle(color: textColor, fontSize: subSize)),
@@ -119,7 +156,21 @@ class DashboardHeader extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                       child: Row(
                         children: [
-                          Container(width: 42, height: 42, decoration: BoxDecoration(color: colorScheme.primaryContainer, borderRadius: BorderRadius.circular(12)), child: Center(child: Text(initials, style: TextStyle(color: colorScheme.onPrimary)))),
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: AuthenticatedAvatar(
+                              key: ValueKey('avatar_collapsed_$avatarRefreshTick'),
+                              studentId: studentId,
+                              size: 42,
+                              borderRadius: BorderRadius.circular(12),
+                              fallback: Center(child: Text(initials, style: TextStyle(color: colorScheme.onPrimary))),
+                            ),
+                          ),
                           const SizedBox(width: 10),
                           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Hello,', style: TextStyle(color: colorScheme.onPrimary.withOpacity(0.6))), Text(studentName, style: TextStyle(color: colorScheme.onPrimary, fontWeight: FontWeight.w500))]),
                         ],

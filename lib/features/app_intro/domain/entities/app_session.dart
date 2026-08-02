@@ -3,14 +3,12 @@ import '../../../shared/domain/entities/user_role.dart';
 
 class AppSession extends Equatable {
   final bool isOnboardingCompleted;
-  final bool isPicChoose;
   final String? token;
   final DateTime? tokenExpiresAt;
   final UserRole? role;
 
   const AppSession({
     required this.isOnboardingCompleted,
-    required this.isPicChoose,
     this.token,
     this.tokenExpiresAt,
     this.role
@@ -25,7 +23,6 @@ class AppSession extends Equatable {
   }) {
     return AppSession(
       isOnboardingCompleted: isOnboardingCompleted ?? this.isOnboardingCompleted,
-      isPicChoose: isPicChoose ?? this.isPicChoose,
       token: token ?? this.token,
       tokenExpiresAt: tokenExpiresAt ?? this.tokenExpiresAt,
       role: role ?? this.role
@@ -44,7 +41,6 @@ class AppSession extends Equatable {
   @override
   List<Object?> get props => [
     isOnboardingCompleted,
-    isPicChoose,
     token,
     tokenExpiresAt,
     role

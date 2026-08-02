@@ -5,7 +5,6 @@ import 'dart:convert';
 class AppSessionModel extends AppSession {
   const AppSessionModel({
     required super.isOnboardingCompleted,
-    required super.isPicChoose,
     super.token,
     super.tokenExpiresAt,
     super.role
@@ -14,7 +13,6 @@ class AppSessionModel extends AppSession {
   factory AppSessionModel.fromEntity(AppSession entity) {
     return AppSessionModel(
       isOnboardingCompleted: entity.isOnboardingCompleted,
-      isPicChoose: entity.isPicChoose,
       token: entity.token,
       tokenExpiresAt: entity.tokenExpiresAt,
       role: entity.role
@@ -24,7 +22,6 @@ class AppSessionModel extends AppSession {
   factory AppSessionModel.fromJson(Map<String, dynamic> json) {
     return AppSessionModel(
       isOnboardingCompleted: json['isOnboardingCompleted'],
-      isPicChoose: json['isPicChoose'],
       token: json['token'],
       tokenExpiresAt: json['tokenExpiresAt'] != null ? DateTime.parse(json['tokenExpiresAt']) : null,
       role: json['role'] != null ? UserRole.fromString(json['role']) : null
@@ -34,7 +31,6 @@ class AppSessionModel extends AppSession {
   Map<String, dynamic> toJson() {
     return {
       'isOnboardingCompleted': isOnboardingCompleted,
-      'isPicChoose': isPicChoose,
       'token': token,
       'tokenExpiresAt': tokenExpiresAt?.toIso8601String(),
       'role': role?.name

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:school_management_mobile_frontend_students/features/tasks/presentation/widgets/today_tasks_strip.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/injector/injector_container.dart';
+import '../../../../core/routing/selected_child_holder.dart';
 import '../../../home/presentation/widgets/home_drawer_widget.dart';
 import '../../../shared/domain/entities/user_role.dart';
 import '../manager/student_cubit.dart';
@@ -22,6 +25,24 @@ class StudentDashboard extends StatefulWidget {
 class _StudentDashboardState extends State<StudentDashboard> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // بيتغيّر بس لما يصير سحب يدوي (Pull-to-Refresh) — مربوط بـ key
+  // الأفاتار حتى يجبرها تعيد جلب الصورة من الصفر (widget جديد كليًا
+  // بمنظور فلاتر، فـ initState بيعيد التنفيذ).
+  int _avatarRefreshTick = 0;
+
+  Future<void> _onRefresh() async {
+    if (widget.studentId == null) {
+      // الطالب نفسو
+      await context.read<StudentCubit>().loadStudentData();
+    } else {
+      final child = di<SelectedChildHolder>().current;
+      if (child != null) {
+        context.read<StudentCubit>().loadFromChildCard(child);
+      }
+    }
+    setState(() => _avatarRefreshTick++);
+  }
+
   @override
   Widget build(BuildContext context) {
     printAllSharedPreferences();
@@ -41,22 +62,36 @@ class _StudentDashboardState extends State<StudentDashboard> {
             return _buildError(context, state.message);
           }
           final loaded = state as StudentLoaded;
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            // داخل الـ slivers في CustomScrollView:
-            slivers: [
-              DashboardHeader(data: loaded, scaffoldKey: _scaffoldKey, studentId: widget.studentId),
-              //[cite: 2, 4]
-              const SliverToBoxAdapter(child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: ModernCalendarStrip())),
-              //[cite: 3, 4]
-              SliverPersistentHeader(
-                  pinned: true, delegate: SliverPinnedTitleDelegate()),
-              //[cite: 1, 4]
-              const DailyScheduleList(),
-              //[cite: 1, 4]
-            ],
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                DashboardHeader(
+                  data: loaded,
+                  scaffoldKey: _scaffoldKey,
+                  studentId: widget.studentId,
+                  avatarRefreshTick: _avatarRefreshTick,
+                ),
+
+                const SliverToBoxAdapter(child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: ModernCalendarStrip())),
+
+                if (widget.studentId == null)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: TodayTasksStrip(),
+                    ),
+                  ),
+                SliverPersistentHeader(
+                    pinned: true, delegate: SliverPinnedTitleDelegate()),
+                //[cite: 1, 4]
+                const DailyScheduleList(),
+                //[cite: 1, 4]
+              ],
+            ),
           );
         },
       ),

@@ -6,16 +6,16 @@ class UserEntity extends Equatable {
   final String phoneNumber;
   final String firstName;
   final String lastName;
-  final String? fatherName;
-  final String? motherName;
-  final String? birthDate;
-  final String? birthPlace;
-  final String? address;
-  final String? nationality;
-  final String? gender;
-  final String? photoUrl;
-  final String? accountStatus;
-  final String? recordStatus;
+  final String fatherName;
+  final String motherName;
+  final String birthDate;
+  final String birthPlace;
+  final String address;
+  final String nationality;
+  final String gender;
+  final String photoUrl;
+  final String accountStatus;
+  final String recordStatus;
   final List<UserRole> roles;
 
   const UserEntity({
@@ -23,16 +23,16 @@ class UserEntity extends Equatable {
     required this.phoneNumber,
     required this.firstName,
     required this.lastName,
-    this.fatherName,
-    this.motherName,
-    this.birthDate,
-    this.birthPlace,
-    this.address,
-    this.nationality,
-    this.gender,
-    this.photoUrl,
-    this.accountStatus,
-    this.recordStatus,
+    required this.fatherName,
+    required this.motherName,
+    required this.birthDate,
+    required this.birthPlace,
+    required this.address,
+    required this.nationality,
+    required this.gender,
+    required this.photoUrl,
+    required this.accountStatus,
+    required this.recordStatus,
     this.roles = const [],
   });
 

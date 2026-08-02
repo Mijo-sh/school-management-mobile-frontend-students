@@ -14,7 +14,7 @@ import '../data_sources/remote_data_source/profile_photo_remote_data_source.dart
 class ProfileRepositoryImpl implements ProfileRepository {
   final ProfileLocalDataSource localDataSource;
   final ProfileRemoteDataSource remoteDataSource;
-  final ProfilePhotoRemoteDataSource photoRemoteDataSource; // 👈 جديد
+  final ProfilePhotoRemoteDataSource photoRemoteDataSource;
   final NetworkInfo networkInfo;
 
   const ProfileRepositoryImpl({
@@ -26,8 +26,8 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<Either<Failure, ProfilePicture>> saveProfilePicture(
-    File image,
-  ) async {
+      File image,
+      ) async {
     final String localPath;
     try {
       localPath = await localDataSource.saveProfilePicture(image);
@@ -79,13 +79,25 @@ class ProfileRepositoryImpl implements ProfileRepository {
     }
   }
 
-  // 👇 الدالة الجديدة المدموجة — من فيتشر ProfilePhoto القديم
   @override
   Future<Either<Failure, String?>> getPhotoUrl({int? studentId}) async {
     try {
       final url = await photoRemoteDataSource.getPhotoUrl(studentId: studentId);
+
+      // نجح ورجع رابط فعلي؟ نخزنه محليًا لأي وقت ما يكون في نت لاحقًا.
+      if (url != null) {
+        try {
+          await localDataSource.cachePhotoUrl(url, studentId: studentId);
+        } catch (_) {} // فشل التخزين نفسو ما يوقف العملية
+      }
+
       return Right(url);
     } on ServerException catch (e) {
+      // فشل الطلب (غالبًا لعدم وجود نت) — نرجع آخر رابط محفوظ بدل
+      // ما نرمي خطأ فورًا. CachedNetworkImage بعدها بتلاقي البايتات
+      // المخزّنة لنفس هالرابط على القرص وتعرضها بدون أي نت.
+      final cachedUrl = await localDataSource.getCachedPhotoUrl(studentId: studentId);
+      if (cachedUrl != null) return Right(cachedUrl);
       return Left(ServerFailure(e.message));
     } catch (e) {
       return Left(UnExpectedFailure(e.toString()));

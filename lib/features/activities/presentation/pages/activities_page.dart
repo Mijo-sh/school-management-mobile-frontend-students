@@ -113,7 +113,7 @@ class _ActivitiesViewState extends State<_ActivitiesView> {
                   }
 
                   final loaded = state as ActivitiesLoaded;
-                  final sorted = [...loaded.activities]
+                  final sorted = [...loaded.items]
                     ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
                   final displayList = sorted.reversed.toList();
 

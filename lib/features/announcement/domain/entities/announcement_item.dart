@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 
-class AnnouncementItem extends Equatable {
+import '../../../shared/presentation/manager/readable_feed_item.dart';
+
+class AnnouncementItem extends Equatable implements ReadableFeedItem{
   final int id;
   final String title;
   final String description;

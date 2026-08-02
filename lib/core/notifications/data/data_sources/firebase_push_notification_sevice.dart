@@ -2,10 +2,13 @@ import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:school_management_mobile_frontend_students/core/errors/failures.dart';
 import 'package:school_management_mobile_frontend_students/core/notifications/data/data_sources/remote_data_source/remote_data_source_notification.dart';
 import '../../domain/repositories/push_notification_repository.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -49,7 +52,7 @@ class FirebasePushNotificationService implements PushNotificationRepository {
         ?.createNotificationChannel(channel);
 
     // تهيئة أساسية لمكتبة الإشعارات المحلية (لازمة قبل استخدام .show)
-   
+
     const initSettings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       iOS: DarwinInitializationSettings(),
@@ -91,6 +94,9 @@ class FirebasePushNotificationService implements PushNotificationRepository {
         _notificationTapController.add(initialMessage.data);
       });
     }
+
+    // 🚀 تفعيل جدول الإشعار اليومي المحلي بمجرد تشغيل الخدمة
+    await scheduleDailyTaskNotification();
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {
@@ -114,7 +120,6 @@ class FirebasePushNotificationService implements PushNotificationRepository {
       payload: message.data.toString(),
     );
   }
-
   @override
   Future<String?> getDeviceToken() async {
     try {
@@ -133,6 +138,36 @@ class FirebasePushNotificationService implements PushNotificationRepository {
     } catch (e) {
       print("خطأ أثناء إرسال FCM Token للسيرفر: $e");
       return Left(ServerFailure());
+    }
+  }
+  @override
+  Future<void> scheduleDailyTaskNotification() async {
+    try {
+      tz.initializeTimeZones();
+
+      // جدولته بعد دقيقة للتجربة الفورية
+      final tz.TZDateTime scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 1));
+
+      await _localNotifications.zonedSchedule(
+        id: 999,
+        title: 'تجربة الإشعار 🚀',
+        body: 'هذا إشعار تجريبي ظهر بعد دقيقة بنجاح!',
+        scheduledDate: scheduledDate,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'high_importance_channel',
+            'High Importance Notifications',
+            channelDescription: 'This channel is used for important school notifications.',
+            importance: Importance.max,
+            priority: Priority.high,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        // ⚠️ أزلنا matchDateTimeComponents مؤقتاً لكي ينجح الإشعار التجريبي الفوري
+      );
+      print("تمت جدولة الإشعار التجريبي بنجاح 🚀");
+    } catch (e) {
+      print("خطأ أثناء جدولة الإشعار: $e");
     }
   }
 }

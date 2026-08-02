@@ -20,26 +20,7 @@ class ChildAvatar extends StatelessWidget {
     return SizedBox(
       width: 150,
       height: 150,
-      child: (photoUrl != null && photoUrl!.isNotEmpty)
-          ? Image.network(
-        photoUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _fallback(cs),
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return Center(
-            child: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: cs.primary,
-              ),
-            ),
-          );
-        },
-      )
-          : _fallback(cs),
+          child:  _fallback(cs),
     );
   }
 
@@ -54,7 +35,7 @@ class ChildAvatar extends StatelessWidget {
         assetPath,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) =>
-            Icon(Icons.person_rounded, size: 64, color: cs.primary),
+            Icon(Icons.person_rounded, size: 100, color: cs.primary),
       ),
     );
   }

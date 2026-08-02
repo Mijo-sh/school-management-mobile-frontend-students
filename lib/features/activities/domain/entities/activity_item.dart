@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 
-class ActivityItem extends Equatable {
+import '../../../shared/presentation/manager/readable_feed_item.dart';
+
+class ActivityItem extends Equatable implements ReadableFeedItem {
   final int id;
   final String activityName;
   final String type;

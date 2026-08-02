@@ -19,14 +19,18 @@ class FakeNotificationService implements PushNotificationRepository {
   Stream<Map<String, dynamic>> get onNotificationTap => const Stream.empty();
 
   @override
+  Stream<Map<String, dynamic>> get onForegroundMessage => const Stream.empty();
+
+  @override
   Future<Either<Failure, Unit>> PutFcmToken(String fcmToken) async {
     return const Right(unit);
   }
 
   @override
-  Stream<Map<String, dynamic>> get onForegroundMessage => throw UnimplementedError();
+  Future<void> scheduleDailyTaskNotification() async {
+    // تنفيذ وهمي للاختبارات
+  }
 }
-
 void main() {
   testWidgets('App loads successfully', (WidgetTester tester) async {
     final fakeService = FakeNotificationService();

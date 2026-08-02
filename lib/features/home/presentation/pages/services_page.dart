@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/injector/injector_container.dart';
 import '../../../../core/notifications/domain/repositories/push_notification_repository.dart';
-import '../../../profile/presentation/pages/profile_page.dart';
-import '../../../shared/presentation/widgets/user_header_card.dart';
+import '../../../shared/presentation/widgets/DecorativeHeaderBackground.dart';
+import '../../../shared/presentation/widgets/simble_curved_header.dart';
 import '../widgets/service_card_tile.dart';
 
 typedef ServiceCardEntry = ({
@@ -67,30 +67,23 @@ class _ServicesPageState extends State<ServicesPage> {
 
     return Scaffold(
       backgroundColor: cs.surface,
-        body: Column(
-          children: [
-            UserHeaderCard(cs: cs, overrideName: widget.childName),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(14, 18, 14, 80),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Services',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: cs.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    _buildCardsGrid(),
-                  ],
-                ),
+      body: Column(
+        children: [
+          // ── هيدر بسيط: خلفية زخرفية + عنوان بالنص بس ──
+           SimbleCurvedHeader(title: "قائمة الخدمات",),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(14, 18, 14, 80),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCardsGrid(),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 

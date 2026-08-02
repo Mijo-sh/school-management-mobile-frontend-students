@@ -9,9 +9,6 @@ class AppEntryDecider {
     if(!session.isAuthenticated || session.isTokenExpired) {
       return SplashDecision.logIn;
     }
-    if(!session.isPicChoose) {
-      return SplashDecision.addPic;
-    }
     return SplashDecision.homeShell;
   }
 }

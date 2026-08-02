@@ -1,8 +1,9 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../shared/presentation/manager/readable_feed_item.dart';
 import 'alert_type.dart';
 
-class AlertItem extends Equatable {
+class AlertItem extends Equatable implements ReadableFeedItem {
   final int id;
   final AlertType type;
   final String title;

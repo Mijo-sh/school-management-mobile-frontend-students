@@ -96,7 +96,7 @@ class _VerificationPageState extends State<VerificationPage>
   void _goHome(UserRole role) {
     // بعد نجاح تسجيل الدخول لأول مرة، نوجّه المستخدم لصفحة إضافة
     // الصورة الشخصية (AddPicturePage) بدل ما نروح مباشرة للـ MainScreen.
-    context.go(RouteName.addPic);
+    context.go(RouteName.homeShell);
   }
 
   @override

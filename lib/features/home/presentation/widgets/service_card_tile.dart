@@ -33,14 +33,20 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
       await context.push(RouteName.announcements, extra: studentId);
     } else if (card.title == 'Activities') {
       await context.push(RouteName.activities, extra: studentId);
-    } else {
+    } else if (card.title == 'Evaluations') {
+      await context.push(RouteName.evaluations, extra: studentId);
+    } else if (card.title == 'Homeworks') {          // 👈 السطرين الجداد
+      await context.push(RouteName.homeworks, extra: studentId);
+    } else if (card.title == 'Grades') {          // 👈 السطرين الجداد
+      await context.push(RouteName.grades, extra: studentId);
+    }else {
       return;
     }
 
-    if (mounted) {
-      setState(() => _badgeRefreshTick++);
-    }
+    if (mounted) setState(() => _badgeRefreshTick++);
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +107,7 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
       ),
     );
 
-    const badgeCards = {'Alerts', 'Announcements', 'Activities'};
+    const badgeCards = {'Alerts', 'Announcements', 'Activities', 'Evaluations','Homeworks','Grades'};
     if (!badgeCards.contains(card.title)) return tile;
 
     return Stack(

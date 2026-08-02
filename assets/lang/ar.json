@@ -44,5 +44,41 @@
   "button_cancel": "إلغاء",
   "log_out_title" : "تأكيد تسجيل الخروج",
   "log_out_content" : "هل أنت متأكد أنك تريد تسجيل الخروج؟",
-  "log_out_confirm" : "تسجيل الخروج"
+  "log_out_confirm" : "تسجيل الخروج",
+
+  "help_us_message" : "اضغط على الزر للتواصل مع الفريق التقني على التيليجرام أو امسح كود الQR",
+  "help_us_button" : "افتح التيليجرام",
+
+  "rating_excellent": "ممتاز ",
+  "rating_very_good": "جيد جدًا ",
+  "rating_good": "جيد ",
+  "rating_average": "متوسط",
+  "rating_weak": "ضعيف",
+  "rating_general": "تقييم",
+  "ai_chat_title": "المساعد الذكي",
+  "ai_chat_new_conversation": "محادثة جديدة",
+  "ai_chat_previous_conversations": "المحادثات السابقة",
+  "ai_chat_no_previous_conversations": "ما في محادثات سابقة",
+  "ai_chat_message_count": "رسالة",
+  "ai_chat_rename_title": "إعادة تسمية المحادثة",
+  "ai_chat_rename_hint": "اسم المحادثة",
+  "ai_chat_empty_state": "ابدأ محادثة جديدة، اكتب أي سؤال 👋",
+  "ai_chat_input_hint": "اكتب رسالتك...",
+
+  "random_tasks_today_title": "مهام اليوم",
+  "random_tasks_view_all": "عرض الكل",
+  "random_tasks_new_task": "مهمة جديدة",
+  "random_tasks_title_field": "العنوان",
+  "random_tasks_description_field": "الوصف (اختياري)",
+  "random_tasks_add_button": "إضافة",
+  "random_tasks_page_title": "مهامي",
+  "random_tasks_today": "اليوم",
+  "random_tasks_tomorrow": "غدًا",
+  "random_tasks_yesterday": "أمس",
+  "random_tasks_empty": "ما في مهام مسجّلة — اضغط + لإضافة أول مهمة",
+  "random_tasks_done": "تمّت",
+  "random_tasks_mark_done": "علّمها كمنجزة",
+
+  "school_rule":"قوانين المدرسة"
+
 }

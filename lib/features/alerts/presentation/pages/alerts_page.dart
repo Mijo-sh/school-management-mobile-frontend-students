@@ -159,7 +159,7 @@ class _AlertsViewState extends State<_AlertsView> {
                   final loaded = state as AlertsLoaded;
 
                   // 1. ترتيب تصاعدي حسب التاريخ لضمان تناسق الترتيب الزمني
-                  final sorted = [...loaded.alerts]
+                  final sorted = [...loaded.items]
                     ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
                   // 2. عكس القائمة بالكامل لأن الـ ListView تستخدم reverse: true وتبدأ من الأسفل

@@ -19,4 +19,7 @@ abstract class PushNotificationRepository {
   Stream<Map<String, dynamic>> get onForegroundMessage;
 
   Future<Either<Failure, Unit>> PutFcmToken(String fcmToken);
+
+  /// 🕒 جدولـة الإشعار المحلي اليومي التلقائي
+  Future<void> scheduleDailyTaskNotification();
 }

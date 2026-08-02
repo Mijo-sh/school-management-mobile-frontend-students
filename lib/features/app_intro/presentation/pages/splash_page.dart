@@ -117,12 +117,10 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
       case SplashDecision.logIn:
         context.go(RouteName.logIn);
         break;
-      case SplashDecision.addPic:
-        context.go(RouteName.addPic);
-        break;
       case SplashDecision.homeShell:
         context.go(RouteName.homeShell);
         break;
+
     }
   }
 

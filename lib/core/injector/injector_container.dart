@@ -6,6 +6,8 @@ import 'package:school_management_mobile_frontend_students/features/auth/data/da
 import 'package:school_management_mobile_frontend_students/features/auth/data/data_sources/remote_data_source/auth_remote_datasource.dart';
 import 'package:school_management_mobile_frontend_students/features/auth/domain/use_cases/log_out.dart';
 import 'package:school_management_mobile_frontend_students/features/auth/presentation/manager/auth_bloc.dart';
+import 'package:school_management_mobile_frontend_students/features/laws/presentation/manager/school_rules_cubit.dart';
+import 'package:school_management_mobile_frontend_students/features/subject/presentation/manager/subjects_cubit.dart';
 
 import '../../features/activities/data/data_sources/local/activity_local_data_source.dart';
 import '../../features/activities/data/data_sources/remote/activity_remote_data_source.dart';
@@ -15,6 +17,9 @@ import '../../features/activities/domain/use_cases/get_activities_usecase.dart';
 import '../../features/activities/domain/use_cases/get_unread_activities_count_usecase.dart';
 import '../../features/activities/domain/use_cases/mark_all_activities_as_read_usecase.dart';
 import '../../features/activities/presentation/manager/activities_cubit.dart';
+import '../../features/ai_assistant/data/data_sources/ai_conversation_store.dart';
+import '../../features/ai_assistant/data/data_sources/gemini_chat_service.dart';
+import '../../features/ai_assistant/presentation/manager/ai_chat_cubit.dart';
 import '../../features/alerts/data/data_sources/remote/alert_remote_data_source_example.dart';
 import '../../features/alerts/data/repositories/alert_repository_impl.dart';
 import '../../features/announcement/data/data_sources/local/announcement_local_data_source.dart';
@@ -31,7 +36,51 @@ import '../../features/app_intro/domain/use_cases/complete_onboarding_use_case.d
 import '../../features/app_intro/domain/use_cases/delete_app_session_use_case.dart';
 import '../../features/app_intro/presentation/bloc/onboarding/onboarding_bloc.dart';
 import '../../features/auth/domain/use_cases/resend_otp_usecase.dart';
+import '../../features/evaluation/data/data_sources/local_datasource/evaluation_local_data_source.dart';
+import '../../features/evaluation/data/data_sources/remote_datasource/evaluation_remote_data_source.dart';
+import '../../features/evaluation/data/repositories/evaluation_repository_impl.dart';
+import '../../features/evaluation/domain/repositories/evaluation_repository.dart';
+import '../../features/evaluation/domain/use_cases/get_evaluations_usecase.dart';
+import '../../features/evaluation/domain/use_cases/get_unread_evaluations_count_usecase.dart';
+import '../../features/evaluation/domain/use_cases/mark_all_evaluations_as_read_usecase.dart';
+import '../../features/evaluation/presentation/manager/evaluations_cubit.dart';
 import '../../features/home/presentation/manager/main_cubit.dart';
+import '../../features/laws/data/data_sources/local/school_rules_local_data_source.dart';
+import '../../features/laws/data/data_sources/remote/school_rules_remote_data_source.dart';
+import '../../features/laws/data/repositories/school_rules_repository_impl.dart';
+import '../../features/laws/domain/repositories/school_rules_repository.dart';
+import '../../features/laws/domain/use_cases/get_school_rules_use_case.dart';
+import '../../features/marks/data/data_sources/local/grade_local_data_source.dart';
+import '../../features/marks/data/data_sources/remote/grade_remote_data_source.dart';
+import '../../features/marks/data/repositories/grade_repository_impl.dart';
+import '../../features/marks/domain/repositories/grade_repository.dart';
+import '../../features/marks/domain/use_cases/get_grades_usecase.dart';
+import '../../features/marks/domain/use_cases/get_unread_grades_count_usecase.dart';
+import '../../features/marks/domain/use_cases/mark_all_grades_as_read_usecase.dart';
+import '../../features/marks/presentation/manager/grades_cubit.dart';
+import '../../features/quiz/data/data_sources/local/practice_quizzes_local_data_source.dart';
+import '../../features/quiz/data/data_sources/remote/practice_quizzes_remote_data_source.dart';
+import '../../features/quiz/data/repositories/practice_quizzes_repository_impl.dart';
+import '../../features/quiz/domain/repositories/practice_quizzes_repository.dart';
+import '../../features/quiz/domain/use_cases/get_last_attempt_details_usecase.dart';
+import '../../features/quiz/domain/use_cases/get_quiz_details_usecase.dart';
+import '../../features/quiz/domain/use_cases/get_quizzes_by_subject_usecase.dart';
+import '../../features/quiz/domain/use_cases/submit_quiz_answers_usecase.dart';
+import '../../features/quiz/presentation/manager/practice_quizzes_cubit.dart';
+import '../../features/subject/data/repositories/subjects_repository_impl.dart';
+import '../../features/subject/domain/repositories/get_practice_subjects_usecase.dart';
+import '../../features/subject/domain/repositories/subjects_repository.dart';
+import '../../features/tasks/data/data_sources/random_tasks_store.dart';
+import '../../features/tasks/data/data_sources/task_reminder_service.dart';
+import '../homework/homework_completion_store.dart';
+import '../../features/homework/data/data_sources/local_datasource/homework_local_data_source.dart';
+import '../../features/homework/data/data_sources/remote_datasource/homework_remote_data_source.dart';
+import '../../features/homework/data/repositories/homework_repository_impl.dart';
+import '../../features/homework/domain/repositories/homework_repository.dart';
+import '../../features/homework/domain/use_cases/get_homeworks_usecase.dart';
+import '../../features/homework/domain/use_cases/get_unread_homeworks_count_usecase.dart';
+import '../../features/homework/domain/use_cases/mark_all_homeworks_as_read_usecase.dart';
+import '../../features/homework/presentation/manager/homeworks_cubit.dart';
 import '../../features/language/data/data_sources/language_local_data_source.dart';
 import '../../features/app_intro/domain/repositories/app_session_repository.dart';
 import '../../features/app_intro/domain/use_cases/save_app_session_use_case.dart';
@@ -62,7 +111,6 @@ import '../../features/profile/domain/use_cases/get_cached_user_usecase.dart';
 import '../../features/profile/domain/use_cases/get_children_usecase.dart';
 import '../../features/profile/domain/use_cases/get_profile_photo_url_usecase.dart';
 import '../../features/profile/domain/use_cases/get_student_usecase.dart';
-import '../../features/profile/domain/use_cases/save_profile_picture.dart';
 import '../../features/profile/presentation/manager/guardian_cubit.dart';
 import '../../features/profile/presentation/manager/profile_picture_bloc.dart';
 import '../../features/profile/presentation/manager/student_cubit.dart';
@@ -94,6 +142,7 @@ import '../../features/alerts/domain/use_cases/get_unread_alerts_count_usecase.d
 import '../../features/alerts/domain/use_cases/mark_alert_as_read_usecase.dart';
 import '../../features/alerts/presentation/manager/alerts_cubit.dart';
 import '../routing/selected_child_holder.dart';
+import '../unread_counts_store.dart';
 
 final di = GetIt.instance;
 Future<void> init() async {
@@ -109,12 +158,13 @@ Future<void> init() async {
 
   // 3. تسجيل الـ Dio (يعتمد على الـ Interceptor الذي يعتمد على LocalDataSource)
   // لذلك سنقوم بتسجيل الـ Interceptor أولاً
-  di.registerLazySingleton<DioAuthInterceptor>(() => DioAuthInterceptor(localDataSource: di()));
+  di.registerLazySingleton<DioAuthInterceptor>(() =>
+      DioAuthInterceptor(localDataSource: di()));
 
   di.registerLazySingleton<Dio>(() {
     final dioInstance = Dio(
       BaseOptions(
-        baseUrl: 'http://192.168.1.104:8000',
+        baseUrl: 'http://10.172.243.242:8000',
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ),
@@ -227,39 +277,67 @@ Future<void> init() async {
 // ********** Profile  **********
 
 // 1. Data Sources (أولاً)
-  di.registerLazySingleton<GuardianRemoteDataSource>(() => GuardianRemoteDataSourceImpl(dio: di()));
-  di.registerLazySingleton<GuardianLocalDataSource>(() => GuardianLocalDataSourceImpl(sharedPreferences: di()));
-  di.registerLazySingleton<StudentRemoteDataSource>(() => StudentRemoteDataSourceImpl(dio: di()));
-  di.registerLazySingleton<StudentLocalDataSource>(() => StudentLocalDataSourceImpl(sharedPreferences: di()));
-  di.registerLazySingleton<ProfileLocalDataSource>(() => ProfileLocalDataSourceImpl( sharedPreferences: di()));
-  di.registerLazySingleton<ProfileRemoteDataSource>(() => ProfileRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<GuardianRemoteDataSource>(() =>
+      GuardianRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<GuardianLocalDataSource>(() =>
+      GuardianLocalDataSourceImpl(sharedPreferences: di()));
+  di.registerLazySingleton<StudentRemoteDataSource>(() =>
+      StudentRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<StudentLocalDataSource>(() =>
+      StudentLocalDataSourceImpl(sharedPreferences: di()));
+  di.registerLazySingleton<ProfileLocalDataSource>(() =>
+      ProfileLocalDataSourceImpl(sharedPreferences: di()));
+  di.registerLazySingleton<ProfileRemoteDataSource>(() =>
+      ProfileRemoteDataSourceImpl(dio: di()));
 
 // 2. Repositories (تعتمد على الـ Data Sources)
-  di.registerLazySingleton<ProfilePhotoRemoteDataSource>(() => ProfilePhotoRemoteDataSourceImpl(dio: di()),);
-  di.registerLazySingleton<GuardianRepository>(() => GuardianRepositoryImpl(remoteDataSource: di(), localDataSource: di()));
-  di.registerLazySingleton<StudentRepository>(() => StudentRepositoryImpl(remoteDataSource: di(), localDataSource: di()));
-  di.registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(localDataSource: di(), remoteDataSource: di(), networkInfo: di(), photoRemoteDataSource: di()));
+  di.registerLazySingleton<ProfilePhotoRemoteDataSource>(() =>
+      ProfilePhotoRemoteDataSourceImpl(dio: di()),);
+  di.registerLazySingleton<GuardianRepository>(() =>
+      GuardianRepositoryImpl(remoteDataSource: di(), localDataSource: di()));
+  di.registerLazySingleton<StudentRepository>(() =>
+      StudentRepositoryImpl(remoteDataSource: di(), localDataSource: di()));
+  di.registerLazySingleton<ProfileRepository>(() =>
+      ProfileRepositoryImpl(localDataSource: di(),
+          remoteDataSource: di(),
+          networkInfo: di(),
+          photoRemoteDataSource: di()));
 
 // 3. Use Cases (تعتمد على الـ Repositories)
-  di.registerLazySingleton<GetCachedUserUsecase>(() => GetCachedUserUsecase(di()));
+  di.registerLazySingleton<GetCachedUserUsecase>(() =>
+      GetCachedUserUsecase(di()));
   di.registerLazySingleton<GetChildrenUsecase>(() => GetChildrenUsecase(di()));
-  di.registerLazySingleton<GetAcademicInfoUsecase>(() => GetAcademicInfoUsecase(di()));
-  di.registerLazySingleton<SaveProfilePicture>(() => SaveProfilePicture(di()));
-  di.registerLazySingleton<GetProfilePhotoUrlUseCase>(() => GetProfilePhotoUrlUseCase(repository: di()),);
+  di.registerLazySingleton<GetAcademicInfoUsecase>(() =>
+      GetAcademicInfoUsecase(di()));
+  di.registerLazySingleton<GetProfilePhotoUrlUseCase>(() =>
+      GetProfilePhotoUrlUseCase(repository: di()),);
 
 // 4. Cubits & Blocs (آخر شيء لأنها تعتمد على الـ Use Cases)
   di.registerFactory(() => GuardianCubit(getChildrenUsecase: di()));
-  di.registerFactory(() => StudentCubit(getAcademicInfoUsecase: di(), getCachedUserUsecase: di()));
+  di.registerFactory(() =>
+      StudentCubit(getAcademicInfoUsecase: di(), getCachedUserUsecase: di()));
   di.registerFactory(() => MainCubit(getCachedUserUsecase: di()));
-  di.registerFactory(() => ProfilePictureBloc(
-    saveProfilePicture: di(),
-    getAppSession: di(),
-    saveAppSession: di(),
-  ));
+  di.registerFactory(() =>
+      ProfilePictureBloc(
+        getAppSession: di(),
+        saveAppSession: di(),
+      ));
 
 // 5. Helpers
   di.registerLazySingleton<SelectedChildHolder>(() => SelectedChildHolder());
-  // ********** Alerts (جديد) **********
+
+  di.registerLazySingleton<UnreadCountsStore>(() =>
+      UnreadCountsStore(
+        getAlertsCount: di(),
+        getAnnouncementsCount: di(),
+        getActivitiesCount: di(),
+        pushNotificationRepository: di(),
+        getEvaluationsCount: di(),
+        getGradesCount: di(),
+        getHomeworksCount: di(),
+      ));
+
+  // ********** Alerts **********
   di.registerLazySingleton<AlertRemoteDataSource>(() =>
       AlertRemoteDataSourceImpl(dio: di()));
   di.registerLazySingleton<AlertLocalDataSource>(() =>
@@ -286,7 +364,7 @@ Future<void> init() async {
         ),
   );
 
-  // ********** Announcements (جديد) **********
+  // ********** Announcements **********
   di.registerLazySingleton<AnnouncementRemoteDataSource>(() =>
       AnnouncementRemoteDataSourceImpl(dio: di()));
   di.registerLazySingleton<AnnouncementLocalDataSource>(() =>
@@ -308,13 +386,181 @@ Future<void> init() async {
       ),
   );
 
-  // ********** Activities (جديد) **********
-  di.registerLazySingleton<ActivityLocalDataSource>(() => ActivityLocalDataSourceImpl(sharedPreferences: di()),);
-  di.registerLazySingleton<ActivityRemoteDataSource>(() => ActivityRemoteDataSourceImpl(dio: di()),);
-  di.registerLazySingleton<ActivityRepository>(() => ActivityRepositoryImpl(remoteDataSource: di(), localDataSource: di(),),);
-  di.registerLazySingleton<GetActivitiesUseCase>(() => GetActivitiesUseCase(repository: di()));
-  di.registerLazySingleton<GetUnreadActivitiesCountUseCase>(() => GetUnreadActivitiesCountUseCase(repository: di()));
-  di.registerLazySingleton<MarkAllActivitiesAsReadUseCase>(() => MarkAllActivitiesAsReadUseCase(repository: di()));
+  // ********** Activities **********
+  di.registerLazySingleton<ActivityLocalDataSource>(() =>
+      ActivityLocalDataSourceImpl(sharedPreferences: di()),);
+  di.registerLazySingleton<ActivityRemoteDataSource>(() =>
+      ActivityRemoteDataSourceImpl(dio: di()),);
+  di.registerLazySingleton<ActivityRepository>(() =>
+      ActivityRepositoryImpl(remoteDataSource: di(), localDataSource: di(),),);
+  di.registerLazySingleton<GetActivitiesUseCase>(() =>
+      GetActivitiesUseCase(repository: di()));
+  di.registerLazySingleton<GetUnreadActivitiesCountUseCase>(() =>
+      GetUnreadActivitiesCountUseCase(repository: di()));
+  di.registerLazySingleton<MarkAllActivitiesAsReadUseCase>(() =>
+      MarkAllActivitiesAsReadUseCase(repository: di()));
 
-  di.registerFactoryParam<ActivitiesCubit, int?, void>((studentId, _) => ActivitiesCubit(getActivitiesUseCase: di(),studentId: studentId, markActivitiesAsReadUseCase: di(),),);
+  di.registerFactoryParam<ActivitiesCubit, int?, void>((studentId, _) =>
+      ActivitiesCubit(getActivitiesUseCase: di(),
+        studentId: studentId,
+        markActivitiesAsReadUseCase: di(),),);
+// ********** Evaluation *******************
+  di.registerLazySingleton<EvaluationLocalDataSource>(() =>
+      EvaluationLocalDataSourceImpl(sharedPreferences: di()));
+  di.registerLazySingleton<EvaluationRemoteDataSource>(() =>
+      EvaluationRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<EvaluationRepository>(() =>
+      EvaluationRepositoryImpl(remoteDataSource: di(), localDataSource: di()));
+  di.registerLazySingleton<GetEvaluationsUseCase>(() =>
+      GetEvaluationsUseCase(repository: di()));
+  di.registerLazySingleton<GetUnreadEvaluationsCountUseCase>(() =>
+      GetUnreadEvaluationsCountUseCase(repository: di()));
+  di.registerLazySingleton<MarkAllEvaluationsAsReadUseCase>(() =>
+      MarkAllEvaluationsAsReadUseCase(repository: di()));
+
+  di.registerFactoryParam<EvaluationsCubit, int?, void>(
+        (studentId, _) =>
+        EvaluationsCubit(
+          getEvaluationsUseCase: di(),
+          markEvaluationsAsReadUseCase: di(),
+          studentId: studentId,
+        ),
+  );
+
+//************** Homework *******************
+  di.registerLazySingleton<HomeworkLocalDataSource>(() =>
+      HomeworkLocalDataSourceImpl(sharedPreferences: di()));
+  di.registerLazySingleton<HomeworkRemoteDataSource>(() =>
+      HomeworkRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<HomeworkRepository>(() =>
+      HomeworkRepositoryImpl(remoteDataSource: di(), localDataSource: di()));
+  di.registerLazySingleton<GetHomeworksUseCase>(() =>
+      GetHomeworksUseCase(repository: di()));
+  di.registerLazySingleton<GetUnreadHomeworksCountUseCase>(() =>
+      GetUnreadHomeworksCountUseCase(repository: di()));
+  di.registerLazySingleton<MarkAllHomeworksAsReadUseCase>(() =>
+      MarkAllHomeworksAsReadUseCase(repository: di()));
+  di.registerLazySingleton<HomeworkCompletionStore>(() =>
+      HomeworkCompletionStore(sharedPreferences: di()));
+
+  di.registerFactoryParam<HomeworksCubit, int?, void>(
+        (studentId, _) =>
+        HomeworksCubit(
+          getHomeworksUseCase: di(),
+          markHomeworksAsReadUseCase: di(),
+          studentId: studentId,
+        ),
+  );
+//***************** AIChat*****************
+  di.registerLazySingleton<AiConversationStore>(() =>
+      AiConversationStore(sharedPreferences: di()));
+  di.registerLazySingleton<GeminiChatService>(() => GeminiChatService());
+  di.registerFactory<AiChatCubit>(() =>
+      AiChatCubit(store: di(), geminiService: di()));
+
+
+//***************** Tasks***************************
+  di.registerLazySingleton<TaskReminderService>(() => TaskReminderService());
+  di.registerLazySingleton<RandomTasksStore>(() =>
+      RandomTasksStore(sharedPreferences: di(), reminderService: di()));
+//***************** Rules ***************************
+  di.registerLazySingleton<SchoolRulesRemoteDataSource>(() => SchoolRulesRemoteDataSourceImpl(dio: di()),);
+  di.registerLazySingleton<SchoolRulesLocalDataSource>(() => SchoolRulesLocalDataSourceImpl(sharedPreferences: di()),);
+  di.registerLazySingleton<SchoolRulesRepository>(() => SchoolRulesRepositoryImpl(remoteDataSource: di(), localDataSource: di(),),);
+
+  di.registerLazySingleton<GetSchoolRulesUseCase>(
+        () => GetSchoolRulesUseCase(di()),
+  );
+
+// 4. Cubit (يُفضل تسجيله كـ Factory وليس Singleton ليتم إنشاء نسخة جديدة وتدميرها عند خروج المستخدم من الصفحة)
+  di.registerFactory<SchoolRulesCubit>(
+        () => SchoolRulesCubit(getSchoolRulesUseCase: di()),
+  );
+  // ==================== Grades Feature ====================
+
+// 1. Data Sources
+  di.registerLazySingleton<GradeRemoteDataSource>(
+        () => GradeRemoteDataSourceImpl(dio: di()),
+  );
+
+  di.registerLazySingleton<GradeLocalDataSource>(
+        () => GradeLocalDataSourceImpl(sharedPreferences: di()),
+  );
+
+// 2. Repository
+  di.registerLazySingleton<GradeRepository>(
+        () => GradeRepositoryImpl(
+      remoteDataSource: di(),
+      localDataSource: di(),
+    ),
+  );
+
+// 3. Use Cases
+  di.registerLazySingleton<GetGradesUseCase>(
+        () => GetGradesUseCase(repository: di()),
+  );
+
+  di.registerLazySingleton<GetUnreadGradesCountUseCase>(
+        () => GetUnreadGradesCountUseCase(repository: di()),
+  );
+
+  di.registerLazySingleton<MarkAllGradesAsReadUseCase>(
+        () => MarkAllGradesAsReadUseCase(repository: di()),
+  );
+
+// 4. Cubit (باستخدام registerFactory ودعم الـ param1 للـ studentId)
+  di.registerFactoryParam<GradesCubit, int?, void>(
+        (studentId, _) => GradesCubit(
+      getGradesUseCase: di(),
+      markGradesAsReadUseCase: di(),
+      studentId: studentId,
+    ),
+  );
+
+  // ==================== Practice Quizzes Feature ====================
+
+  // 1. Data Sources
+  di.registerLazySingleton<PracticeQuizzesRemoteDataSource>(
+        () => PracticeQuizzesRemoteDataSourceImpl(dio: di()),
+  );
+
+  di.registerLazySingleton<PracticeQuizzesLocalDataSource>(
+        () => PracticeQuizzesLocalDataSourceImpl(sharedPreferences: di()),
+  );
+
+  // 2. Repositories
+  di.registerLazySingleton<SubjectsRepository>(
+        () => SubjectsRepositoryImpl(
+      remoteDataSource: di(),
+      localDataSource: di(),
+    ),
+  );
+
+  di.registerLazySingleton<PracticeQuizzesRepository>(
+        () => PracticeQuizzesRepositoryImpl(
+      remoteDataSource: di(),
+      localDataSource: di(),
+    ),
+  );
+
+  // 3. Use Cases
+  di.registerLazySingleton(() => GetPracticeSubjectsUseCase(di()));
+  di.registerLazySingleton(() => GetQuizzesBySubjectUseCase(di()));
+  di.registerLazySingleton(() => GetQuizDetailsUseCase(di()));
+  di.registerLazySingleton(() => SubmitQuizAnswersUseCase(di()));
+  di.registerLazySingleton(() => GetLastAttemptDetailsUseCase(di()));
+  // 4. Cubit
+  di.registerFactory(
+        () => PracticeQuizzesCubit(
+      getQuizzesBySubjectUseCase: di(),
+      getQuizDetailsUseCase: di(),
+      submitQuizAnswersUseCase: di(),
+          getLastAttemptDetailsUseCase: di(),
+    ),
+  );
+  di.registerFactory(
+          () => SubjectsCubit(
+          getPracticeSubjectsUseCase: di(),
+          ));
+
 }

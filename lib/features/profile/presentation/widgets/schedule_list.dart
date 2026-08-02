@@ -102,5 +102,5 @@ class SliverPinnedTitleDelegate extends SliverPersistentHeaderDelegate {
   @override
   double get minExtent => 55.0;
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate old) => false;
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate old) => true;
 }

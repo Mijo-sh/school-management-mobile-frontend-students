@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../core/injector/injector_container.dart';
-import '../../../activities/domain/use_cases/get_unread_activities_count_usecase.dart';
-import '../../../alerts/domain/use_cases/get_unread_alerts_count_usecase.dart';
-import '../../../announcement/domain/use_cases/get_unread_announcements_count_usecase.dart';
 
+import '../../../../core/injector/injector_container.dart';
+import '../../../../core/unread_counts_store.dart';
+
+/// بادج العدد غير المقروء — هلق بتقرا مباشرة من [UnreadCountsStore]
+/// (Singleton محمّل مسبقًا بمستوى الـ Shell)، بدل ما تعمل طلب سيرفر
+/// مستقل لحالها كل مرة تُبنى. صفر تأخير، وتحديث تلقائي فوري لما
+/// الـ Store يتغيّر (تحميل أولي، إشعار جديد، أو تصفير قراءة).
 class UnreadBadge extends StatelessWidget {
   final int? studentId;
   final String cardTitle;
@@ -14,31 +17,32 @@ class UnreadBadge extends StatelessWidget {
     required this.cardTitle,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final Future<int> future;
-
+  int _countFor(UnreadCountsStore store) {
     switch (cardTitle) {
       case 'Announcements':
-        future = di<GetUnreadAnnouncementsCountUseCase>()
-            .call(studentId: studentId)
-            .then((r) => r.fold((_) => 0, (count) => count));
-        break;
+        return store.announcements;
       case 'Activities':
-        future = di<GetUnreadActivitiesCountUseCase>()
-            .call(studentId: studentId)
-            .then((r) => r.fold((_) => 0, (count) => count));
-        break;
-      default: // Alerts
-        future = di<GetUnreadAlertsCountUseCase>()
-            .call(studentId: studentId)
-            .then((r) => r.fold((_) => 0, (count) => count));
-    }
+        return store.activities;
+      case 'Evaluations':
+        return store.evaluations;
+      case 'Homeworks':
+        return store.homeworks;
+      case 'Grades':
+        return store.grades;
 
-    return FutureBuilder<int>(
-      future: future,
-      builder: (context, snapshot) {
-        final count = snapshot.data ?? 0;
+      default: // Alerts
+        return store.alerts;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = di<UnreadCountsStore>();
+
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final count = _countFor(store);
         if (count <= 0) return const SizedBox.shrink();
 
         return Container(

@@ -2,9 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-
-// استيرادات الملفات الخاصة بك
+import 'package:school_management_mobile_frontend_students/features/home/presentation/widgets/drawer_help_us_page.dart';
+import 'package:school_management_mobile_frontend_students/features/marks/presentation/pages/grades_page.dart';
 import '../../features/activities/presentation/pages/activities_page.dart';
+import '../../features/ai_assistant/presentation/pages/ai_chat_page.dart';
 import '../../features/announcement/presentation/pages/announcements_page.dart';
 import '../../features/alerts/presentation/pages/alerts_page.dart';
 import '../../features/app_intro/presentation/bloc/onboarding/onboarding_bloc.dart';
@@ -13,13 +14,22 @@ import '../../features/app_intro/presentation/pages/onboarding_page.dart';
 import '../../features/app_intro/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/verification_page.dart';
+import '../../features/evaluation/presentation/pages/evaluations_page.dart';
 import '../../features/home/presentation/pages/child_shell_page.dart';
 import '../../features/home/presentation/pages/home_shell_page.dart';
-import '../../features/profile/presentation/pages/add_picture_page.dart';
+import '../../features/homework/presentation/pages/homeworks_page.dart';
+import '../../features/laws/presentation/pages/school_rules_page.dart';
 import '../../features/profile/presentation/pages/guardian.dart'; // صفحة ولي الأمر
+import '../../features/profile/presentation/pages/profile_details_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart'; // صفحة الـ Dashboard للطالب
 import '../../features/profile/presentation/manager/student_cubit.dart';
 import '../../features/profile/presentation/manager/guardian_cubit.dart';
+import '../../features/quiz/presentation/manager/practice_quizzes_cubit.dart';
+import '../../features/quiz/presentation/pages/quiz_view_screen.dart';
+import '../../features/quiz/presentation/pages/quizzes_list_screen.dart';
+import '../../features/quiz/presentation/pages/subjects_screen.dart';
+import '../../features/subject/presentation/manager/subjects_cubit.dart';
+import '../../features/tasks/presentation/pages/random_tasks_page.dart';
 import '../injector/injector_container.dart';
 import 'route_name.dart';
 import '../../features/home/presentation/pages/student_shell.dart'; // الـ Shell الجديد
@@ -57,23 +67,34 @@ class AppRouter {
         builder: (context, state) => const LoginPage(),
       ),
 
+
       GoRoute(
         path: RouteName.verification,
         builder: (context, state) => VerificationPage(
           phoneNumber: state.extra as String,
         ),
       ),
-
-      // 4. Add Picture
       GoRoute(
-        path: RouteName.addPic,
-        builder: (context, state) => const AddPicturePage(),
+        path: RouteName.randomTasks,
+        builder: (context, state) =>RandomTasksPage(),
       ),
 
       // 5. Home Shell (الموجه الذكي الذي يفحص الـ Role ويوجه بالـ context.go)
       GoRoute(
         path: RouteName.homeShell,
         builder: (context, state) => const HomeShellPage(),
+      ),
+      GoRoute(
+        path: RouteName.helpUs,
+        builder: (context, state) => const HelpUsPage(),
+      ),
+      GoRoute(
+        path: RouteName.schoolRules,
+        builder: (context, state) => const SchoolRulesPage(),
+      ),
+      GoRoute(
+        path: RouteName.showprofile,
+        builder: (context, state) => const ProfileDetailsPage(),
       ),
 
       // 6. صفحة ولي الأمر الرئيسية (Parent Home)
@@ -91,17 +112,19 @@ class AppRouter {
           return StudentShell(navigationShell: navigationShell);
         },
         branches: [
+          // الفرع الأول: الـ Dashboard
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: StudentRouteName.dashboard,
                 builder: (context, state) => BlocProvider(
                   create: (_) => di<StudentCubit>()..loadStudentData(),
-                  child: const StudentDashboard(), // أو الـ ProfilePage حسب المسمى عندك
+                  child: const StudentDashboard(),
                 ),
               ),
             ],
           ),
+          // الفرع الثاني: الخدمات (Services)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -109,7 +132,7 @@ class AppRouter {
                 builder: (context, state) => const ServicesPage(
                   extraCards: [
                     (
-                    title: 'Homework',
+                    title: 'Homeworks',
                     image: 'assets/images/homework.png',
                     color: Color(0xFFB07D00),
                     iconBg: Color(0xFFFEF3CD)
@@ -117,6 +140,27 @@ class AppRouter {
                   ],
                 ),
               ),
+            ],
+          ),
+          // الفرع الثالث: الـ AI Chat (الذي يشبه ما طلبتيه)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: StudentRouteName.aiChat,
+                builder: (context, state) => const AiChatPage(),
+              ),
+            ],
+          ),
+          // 👇 الفرع الرابع الجديد: المواد التدريبية (Practice Quizzes) لتظهر بالناف بار
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: StudentRouteName.practiceSubjects,
+                builder: (context, state) => BlocProvider(
+                  create: (_) => di<SubjectsCubit>()..fetchSubjects(),
+                  child: const SubjectsScreen(),
+                ),
+              )
             ],
           ),
         ],
@@ -176,6 +220,12 @@ class AppRouter {
                       color: const Color(0xFF0F9D58),
                       iconBg: const Color(0xFFDDF5E8)
                       ),
+                      (
+                      title: 'Homeworks',
+                      image: 'assets/images/homework.png',
+                      color: const Color(0xFFB07D00),
+                      iconBg: const Color(0xFFFEF3CD)
+                      ),
                     ],
                   );
                 },
@@ -196,6 +246,48 @@ class AppRouter {
       GoRoute(
         path: RouteName.activities,
         builder: (context, state) => ActivitiesPage(studentId: state.extra as int?),
+      ),
+      GoRoute(
+        path: RouteName.evaluations,
+        builder: (context, state) => EvaluationsPage(studentId: state.extra as int?),
+      ),
+      GoRoute(
+        path: RouteName.homeworks,
+        builder: (context, state) => HomeworksPage(studentId: state.extra as int?),
+      ),
+      GoRoute(
+        path: RouteName.grades,
+        builder: (context, state) => GradesPage(studentId: state.extra as int?),
+      ),
+
+      // 2. شاشة قائمة الكويزات للمادة (يمكن تمرير الـ subjectId و subjectName عبر extra كـ Map)
+      GoRoute(
+        path: StudentRouteName.practiceQuizzesList,
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>;
+          return BlocProvider.value(
+            value: args['cubit'] as PracticeQuizzesCubit,
+            child: QuizzesListScreen(
+              subjectName: args['subjectName'],
+              subjectId: args['subjectId'],
+            ),
+          );
+        },
+      ),
+      // 3. شاشة حل الاختبار
+      GoRoute(
+        path: StudentRouteName.practiceQuizView,
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>;
+          return BlocProvider.value(
+            value: args['cubit'] as PracticeQuizzesCubit,
+            child: QuizViewScreen(
+              quizTitle: args['quizTitle'],
+              subjectId: args['subjectId'],
+              isReviewMode: args['isReviewMode'] ?? false, // تمرير القيمة هنا بأمان
+            ),
+          );
+        },
       ),
     ],
   );

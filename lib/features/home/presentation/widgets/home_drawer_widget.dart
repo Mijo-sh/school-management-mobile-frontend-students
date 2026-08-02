@@ -165,13 +165,17 @@ class HomeDrawerWidget extends StatelessWidget {
             // 5. خيار حول المدرسة
             _buildListTile(context, Icons.info, "drawer_about_school".tr(context), () {
               context.pop();
-              context.push(RouteName.aboutSchool);
+              context.push(RouteName.showprofile);
             }),
 
             // 6. خيار ساعدنا / الدعم الفني
             _buildListTile(context, Icons.help, "drawer_help_us".tr(context), () {
               context.pop();
               context.push(RouteName.helpUs);
+            }),
+            _buildListTile(context, Icons.rule, "school_rule".tr(context), () {
+              context.pop();
+              context.push(RouteName.schoolRules);
             }),
 
             // 7. خيار تسجيل الخروج

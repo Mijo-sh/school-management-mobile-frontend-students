@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-import 'core/injector/injector_container.dart';
-import 'core/localization/app_localization.dart';
-import 'core/notifications/domain/repositories/push_notification_repository.dart';
-import 'core/notifications/presentation/manager/notification_handler.dart';
-import 'core/routing/app_router.dart';
-import 'core/theme/app_theme.dart';
-
+import '../../../../core/injector/injector_container.dart';
+import '../../../../core/localization/app_localization.dart';
+import '../../../../core/notifications/domain/repositories/push_notification_repository.dart';
+import '../../../../core/notifications/presentation/manager/notification_handler.dart';
+import '../../../../core/routing/app_router.dart';
+import '../../../../core/theme/app_theme.dart';
+import 'core/notifications/data/data_sources/local_data_source/LocalNotificationService.dart';
+import 'core/notifications/data/data_sources/local_data_source/notification_local_data_source.dart';
 import 'features/auth/presentation/manager/auth_bloc.dart';
 import 'features/language/presentation/bloc/language_bloc.dart';
 import 'features/theme/domain/enums/theme_type.dart';
@@ -18,10 +20,18 @@ import 'features/theme/presentation/bloc/theme_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await LocalNotificationService.initialize();
   // 1. تهيئة الـ Firebase
   await Firebase.initializeApp();
 
+  // 1.5 تفعيل App Check — إلزامية من غوغل لأي طلب لـ Gemini عبر
+  // firebase_ai. androidProvider/appleProvider هون "debug" (للتطوير
+  // المحلي بس) — لازم تتغيّر لمزوّد حقيقي (playIntegrity) وقت النشر
+  // الفعلي للتطبيق.
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.debug,
+    appleProvider: AppleProvider.debug,
+  );
   // 2. تهيئة حقن التبعيات (DI)
   await init();
 

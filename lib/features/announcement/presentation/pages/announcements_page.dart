@@ -103,7 +103,7 @@ class _AnnouncementsViewState extends State<_AnnouncementsView> {
                   final loaded = state as AnnouncementsLoaded;
 
                   // ترتيب تصاعدي حسب التاريخ
-                  final sorted = [...loaded.announcements]
+                  final sorted = [...loaded.items]
                     ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
                   final displayList = sorted.reversed.toList();
 
