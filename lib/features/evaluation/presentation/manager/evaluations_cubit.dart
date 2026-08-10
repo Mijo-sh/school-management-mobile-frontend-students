@@ -1,5 +1,8 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/injector/injector_container.dart';
+import '../../../../core/notification_types.dart';
+import '../../../../core/unread_counts_store.dart';
 import '../../../shared/domain/entities/paginated.dart';
 import '../../../shared/presentation/manager/feed_cubit.dart';
 import '../../../shared/presentation/manager/feed_state.dart';
@@ -35,6 +38,11 @@ class EvaluationsCubit extends FeedCubit<EvaluationItem> {
     return markEvaluationsAsReadUseCase(studentId: studentId);
   }
 
-  /// اسم بديل — EvaluationsPage بتنادي loadEvaluations() مش load().
   Future<void> loadEvaluations() => load();
+  @override
+  void clearBadge() => di<UnreadCountsStore>().clearEvaluations();
+
+  @override
+  Set<String> get notificationTypes => {NotificationType.newEvaluation};
+
 }

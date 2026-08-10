@@ -36,7 +36,7 @@ class AlertLocalDataSourceImpl implements AlertLocalDataSource {
   Future<List<AlertItemModel>> getCachedAlerts({int? studentId}) async {
     final jsonString = sharedPreferences.getString(_keyFor(studentId));
     if (jsonString == null) {
-      throw CacheException();
+      throw EmptyCacheException();
     }
     try {
       final list = jsonDecode(jsonString) as List<dynamic>;

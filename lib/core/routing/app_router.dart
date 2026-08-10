@@ -15,6 +15,7 @@ import '../../features/app_intro/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/verification_page.dart';
 import '../../features/evaluation/presentation/pages/evaluations_page.dart';
+import '../../features/helper/presentation/pages/materials_page.dart';
 import '../../features/home/presentation/pages/child_shell_page.dart';
 import '../../features/home/presentation/pages/home_shell_page.dart';
 import '../../features/homework/presentation/pages/homeworks_page.dart';
@@ -30,6 +31,8 @@ import '../../features/quiz/presentation/pages/quizzes_list_screen.dart';
 import '../../features/quiz/presentation/pages/subjects_screen.dart';
 import '../../features/subject/presentation/manager/subjects_cubit.dart';
 import '../../features/tasks/presentation/pages/random_tasks_page.dart';
+import '../../features/weekly_schedule/presentation/pages/schedules_hup_page.dart';
+import '../../features/weekly_schedule/presentation/pages/weekly_schedule_page.dart';
 import '../injector/injector_container.dart';
 import 'route_name.dart';
 import '../../features/home/presentation/pages/student_shell.dart'; // الـ Shell الجديد
@@ -137,12 +140,17 @@ class AppRouter {
                     color: Color(0xFFB07D00),
                     iconBg: Color(0xFFFEF3CD)
                     ),
+                    (
+                    title: 'File Helper',
+                    image: 'assets/images/helper.png',
+                    color: const Color(0xFF0F9D58),
+                    iconBg: const Color(0xFFDDF5E8)
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-          // الفرع الثالث: الـ AI Chat (الذي يشبه ما طلبتيه)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -161,6 +169,15 @@ class AppRouter {
                   child: const SubjectsScreen(),
                 ),
               )
+            ],
+          ),
+          // الفرع الخامس: برنامج الأسبوع
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteName.schedule,
+                builder: (context, state) => const SchedulesHubPage(),
+              ),
             ],
           ),
         ],
@@ -230,6 +247,22 @@ class AppRouter {
                   );
                 },
               ),
+
+            ],
+          ),
+
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteName.schedule,
+                builder: (context, state) {
+                  final child = di<SelectedChildHolder>().current!;
+                  return BlocProvider(
+                    create: (_) => di<StudentCubit>()..loadFromChildCard(child),
+                    child:  SchedulesHubPage(),
+                  );
+                },
+              ),
             ],
           ),
         ],
@@ -259,6 +292,16 @@ class AppRouter {
         path: RouteName.grades,
         builder: (context, state) => GradesPage(studentId: state.extra as int?),
       ),
+      GoRoute(
+        path: RouteName.week_schedule,
+        builder: (context, state) => WeeklySchedulePage(studentId: state.extra as int?),
+      ),
+
+// ومع الـ routes المنفصلة:
+  GoRoute(
+  path: RouteName.studyMaterials,
+  builder: (context, state) => MaterialsPage(studentId: state.extra as int?),
+  ),
 
       // 2. شاشة قائمة الكويزات للمادة (يمكن تمرير الـ subjectId و subjectName عبر extra كـ Map)
       GoRoute(

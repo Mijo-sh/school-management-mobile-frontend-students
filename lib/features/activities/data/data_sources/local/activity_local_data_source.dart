@@ -32,7 +32,7 @@ class ActivityLocalDataSourceImpl implements ActivityLocalDataSource {
   Future<List<ActivityItemModel>> getCachedActivities({int? studentId}) async {
     final jsonString = sharedPreferences.getString(_keyFor(studentId));
     if (jsonString == null) {
-      throw CacheException();
+      throw EmptyCacheException();
     }
     try {
       final list = jsonDecode(jsonString) as List<dynamic>;

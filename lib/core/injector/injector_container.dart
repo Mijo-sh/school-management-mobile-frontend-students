@@ -44,6 +44,16 @@ import '../../features/evaluation/domain/use_cases/get_evaluations_usecase.dart'
 import '../../features/evaluation/domain/use_cases/get_unread_evaluations_count_usecase.dart';
 import '../../features/evaluation/domain/use_cases/mark_all_evaluations_as_read_usecase.dart';
 import '../../features/evaluation/presentation/manager/evaluations_cubit.dart';
+import '../../features/helper/data/data_sources/remote/materials_remote_data_source.dart';
+import '../../features/helper/data/repositories/materials_repository_impl.dart';
+import '../../features/helper/domain/repositories/materials_repository.dart';
+import '../../features/helper/domain/use_cases/download_material_usecase.dart';
+import '../../features/helper/domain/use_cases/get_materials_usecase.dart';
+import '../../features/helper/domain/use_cases/get_unread_materials_count_usecase.dart';
+import '../../features/helper/domain/use_cases/mark_all_materials_as_read_usecase.dart';
+import '../../features/helper/presentation/manager/materials_cubit.dart';
+import '../../features/helper/presentation/widgets/material_downloader.dart';
+import '../../features/helper/presentation/widgets/material_file_service.dart';
 import '../../features/home/presentation/manager/main_cubit.dart';
 import '../../features/laws/data/data_sources/local/school_rules_local_data_source.dart';
 import '../../features/laws/data/data_sources/remote/school_rules_remote_data_source.dart';
@@ -65,13 +75,23 @@ import '../../features/quiz/domain/repositories/practice_quizzes_repository.dart
 import '../../features/quiz/domain/use_cases/get_last_attempt_details_usecase.dart';
 import '../../features/quiz/domain/use_cases/get_quiz_details_usecase.dart';
 import '../../features/quiz/domain/use_cases/get_quizzes_by_subject_usecase.dart';
+import '../../features/quiz/domain/use_cases/get_quizzes_unread_count_usecase.dart';
+import '../../features/quiz/domain/use_cases/mark_as_read_quiz_usecase.dart';
 import '../../features/quiz/domain/use_cases/submit_quiz_answers_usecase.dart';
 import '../../features/quiz/presentation/manager/practice_quizzes_cubit.dart';
+import '../../features/quiz/presentation/widgets/quiz_unread_store.dart';
 import '../../features/subject/data/repositories/subjects_repository_impl.dart';
 import '../../features/subject/domain/repositories/get_practice_subjects_usecase.dart';
 import '../../features/subject/domain/repositories/subjects_repository.dart';
 import '../../features/tasks/data/data_sources/random_tasks_store.dart';
 import '../../features/tasks/data/data_sources/task_reminder_service.dart';
+import '../../features/weekly_schedule/data/data_sources/local/schedule_local_data_source .dart';
+import '../../features/weekly_schedule/data/data_sources/remote/schedule_remote_data_source.dart';
+import '../../features/weekly_schedule/data/repositories/schedule_repository_impl.dart';
+import '../../features/weekly_schedule/domain/repositories/schedule_repository.dart';
+import '../../features/weekly_schedule/domain/use_cases/get_tomorrow_schedule_usecase.dart';
+import '../../features/weekly_schedule/domain/use_cases/get_weekly_schedule_usecase.dart';
+import '../../features/weekly_schedule/presentation/manager/schedule_cubit (1).dart';
 import '../homework/homework_completion_store.dart';
 import '../../features/homework/data/data_sources/local_datasource/homework_local_data_source.dart';
 import '../../features/homework/data/data_sources/remote_datasource/homework_remote_data_source.dart';
@@ -164,7 +184,7 @@ Future<void> init() async {
   di.registerLazySingleton<Dio>(() {
     final dioInstance = Dio(
       BaseOptions(
-        baseUrl: 'http://10.172.243.242:8000',
+        baseUrl: 'http://10.183.242.242:8000',
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ),
@@ -335,6 +355,7 @@ Future<void> init() async {
         getEvaluationsCount: di(),
         getGradesCount: di(),
         getHomeworksCount: di(),
+        getMaterialsCount: di(),
       ));
 
   // ********** Alerts **********
@@ -464,9 +485,13 @@ Future<void> init() async {
   di.registerLazySingleton<RandomTasksStore>(() =>
       RandomTasksStore(sharedPreferences: di(), reminderService: di()));
 //***************** Rules ***************************
-  di.registerLazySingleton<SchoolRulesRemoteDataSource>(() => SchoolRulesRemoteDataSourceImpl(dio: di()),);
-  di.registerLazySingleton<SchoolRulesLocalDataSource>(() => SchoolRulesLocalDataSourceImpl(sharedPreferences: di()),);
-  di.registerLazySingleton<SchoolRulesRepository>(() => SchoolRulesRepositoryImpl(remoteDataSource: di(), localDataSource: di(),),);
+  di.registerLazySingleton<SchoolRulesRemoteDataSource>(() =>
+      SchoolRulesRemoteDataSourceImpl(dio: di()),);
+  di.registerLazySingleton<SchoolRulesLocalDataSource>(() =>
+      SchoolRulesLocalDataSourceImpl(sharedPreferences: di()),);
+  di.registerLazySingleton<SchoolRulesRepository>(() =>
+      SchoolRulesRepositoryImpl(
+        remoteDataSource: di(), localDataSource: di(),),);
 
   di.registerLazySingleton<GetSchoolRulesUseCase>(
         () => GetSchoolRulesUseCase(di()),
@@ -489,10 +514,11 @@ Future<void> init() async {
 
 // 2. Repository
   di.registerLazySingleton<GradeRepository>(
-        () => GradeRepositoryImpl(
-      remoteDataSource: di(),
-      localDataSource: di(),
-    ),
+        () =>
+        GradeRepositoryImpl(
+          remoteDataSource: di(),
+          localDataSource: di(),
+        ),
   );
 
 // 3. Use Cases
@@ -510,11 +536,12 @@ Future<void> init() async {
 
 // 4. Cubit (باستخدام registerFactory ودعم الـ param1 للـ studentId)
   di.registerFactoryParam<GradesCubit, int?, void>(
-        (studentId, _) => GradesCubit(
-      getGradesUseCase: di(),
-      markGradesAsReadUseCase: di(),
-      studentId: studentId,
-    ),
+        (studentId, _) =>
+        GradesCubit(
+          getGradesUseCase: di(),
+          markGradesAsReadUseCase: di(),
+          studentId: studentId,
+        ),
   );
 
   // ==================== Practice Quizzes Feature ====================
@@ -530,17 +557,19 @@ Future<void> init() async {
 
   // 2. Repositories
   di.registerLazySingleton<SubjectsRepository>(
-        () => SubjectsRepositoryImpl(
-      remoteDataSource: di(),
-      localDataSource: di(),
-    ),
+        () =>
+        SubjectsRepositoryImpl(
+          remoteDataSource: di(),
+          localDataSource: di(),
+        ),
   );
 
   di.registerLazySingleton<PracticeQuizzesRepository>(
-        () => PracticeQuizzesRepositoryImpl(
-      remoteDataSource: di(),
-      localDataSource: di(),
-    ),
+        () =>
+        PracticeQuizzesRepositoryImpl(
+          remoteDataSource: di(),
+          localDataSource: di(),
+        ),
   );
 
   // 3. Use Cases
@@ -549,18 +578,57 @@ Future<void> init() async {
   di.registerLazySingleton(() => GetQuizDetailsUseCase(di()));
   di.registerLazySingleton(() => SubmitQuizAnswersUseCase(di()));
   di.registerLazySingleton(() => GetLastAttemptDetailsUseCase(di()));
+  di.registerLazySingleton(() => GetQuizzesUnreadCountUseCase(di()));
+  di.registerLazySingleton(() => MarkQuizzesAsReadUseCase(di()));
   // 4. Cubit
   di.registerFactory(
-        () => PracticeQuizzesCubit(
-      getQuizzesBySubjectUseCase: di(),
-      getQuizDetailsUseCase: di(),
-      submitQuizAnswersUseCase: di(),
+        () =>
+        PracticeQuizzesCubit(
+          getQuizzesBySubjectUseCase: di(),
+          getQuizDetailsUseCase: di(),
+          submitQuizAnswersUseCase: di(),
           getLastAttemptDetailsUseCase: di(),
-    ),
+        ),
   );
   di.registerFactory(
-          () => SubjectsCubit(
-          getPracticeSubjectsUseCase: di(),
+          () =>
+          SubjectsCubit(
+            getPracticeSubjectsUseCase: di(),
           ));
-
+  di.registerLazySingleton<QuizUnreadStore>(() =>
+      QuizUnreadStore(
+        getUnreadCounts: di(), // الاسم الجديد
+        markAsReadUseCase: di(),
+        pushNotificationRepository: di(),
+      ));
+  // **************** helper*****************
+  // data source + repository
+  di.registerLazySingleton<MaterialsRemoteDataSource>(() =>
+      MaterialsRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<MaterialsRepository>(() =>
+      MaterialsRepositoryImpl(remoteDataSource: di()));
+// use cases
+  di.registerLazySingleton(() => GetMaterialsUseCase(di()));
+  di.registerLazySingleton(() => GetUnreadMaterialsCountUseCase(di()));
+  di.registerLazySingleton(() => MarkAllMaterialsAsReadUseCase(di()));
+  di.registerLazySingleton(() => DownloadMaterialUseCase(di()));
+// cubit
+  di.registerFactory(() =>
+      MaterialsCubit(
+          getMaterialsUseCase: di(), markMaterialsAsReadUseCase: di()));
+  di.registerLazySingleton(() => MaterialFileService(dio: di(), sessionLocalDataSource: di()));
+  di.registerLazySingleton(() => MaterialDownloader(sessionLocalDataSource: di(), dio: di()));
+  // ***************** schedule ********************
+  // ── Schedule (برنامج الأسبوع) ──
+  di.registerLazySingleton<ScheduleRemoteDataSource>(
+          () => ScheduleRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<ScheduleLocalDataSource>(
+          () => ScheduleLocalDataSourceImpl(sharedPreferences: di()));
+  di.registerLazySingleton<ScheduleRepository>(() => ScheduleRepositoryImpl(
+    remoteDataSource: di(),
+    localDataSource: di(),
+  ));
+  di.registerLazySingleton(() => GetWeeklyScheduleUseCase(di()));
+  di.registerLazySingleton(() => GetTomorrowScheduleUseCase(di()));
+  di.registerFactory(() => ScheduleCubit(getWeeklyScheduleUseCase: di(), localDataSource: di()));
 }

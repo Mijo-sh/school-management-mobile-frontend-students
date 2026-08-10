@@ -13,6 +13,8 @@ class DioAuthInterceptor extends Interceptor {
       options.headers['Authorization'] = 'Bearer ${session!.token}';
 
     }
+
     handler.next(options);
   }
 }
+

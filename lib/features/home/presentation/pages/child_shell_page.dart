@@ -20,19 +20,35 @@ class ChildShellPage extends StatefulWidget {
   State<ChildShellPage> createState() => _ChildShellPageState();
 }
 
-class _ChildShellPageState extends State<ChildShellPage> {
+class _ChildShellPageState extends State<ChildShellPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    // نفس مبدأ StudentShell بالظبط، بس هون studentId = id الابن.
+    WidgetsBinding.instance.addObserver(this);
+
+    // نفس مبدأ StudentShell، بس هون studentId = id الابن.
     di<UnreadCountsStore>().loadAll(studentId: widget.child.id);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant ChildShellPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // لو تبدّل الابن (نادر بنفس مكان الـ widget، بس احتياط) نعيد التحميل.
+    // لو تبدّل الابن نعيد التحميل.
     if (oldWidget.child.id != widget.child.id) {
+      di<UnreadCountsStore>().loadAll(studentId: widget.child.id);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // لما يرجع التطبيق من الخلفية للواجهة، نعيد جلب عدّادات هذا الابن.
+    if (state == AppLifecycleState.resumed) {
       di<UnreadCountsStore>().loadAll(studentId: widget.child.id);
     }
   }
@@ -64,8 +80,7 @@ class _ChildShellPageState extends State<ChildShellPage> {
           items: [
             Icon(Icons.home_rounded, color: cs.onPrimary, size: 26),
             Icon(Icons.grid_view_rounded, color: cs.onPrimary, size: 26),
-           // Icon(Icons.chat_bubble_outline, color: cs.onPrimary, size: 26),
-
+            Icon(Icons.calendar_month_rounded, color: cs.onPrimary, size: 26),
           ],
         ),
         body: widget.navigationShell,

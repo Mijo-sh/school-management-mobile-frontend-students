@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../../core/errors/exceptions.dart';
+import '../../../../../core/network/base_remote_data_source.dart';
 import '../../../../shared/data/models/paginated_model.dart';
 import '../../models/activity_item_model.dart';
 
@@ -9,7 +10,7 @@ abstract class ActivityRemoteDataSource {
   Future<void> markAllAsRead({int? studentId});
 }
 
-class ActivityRemoteDataSourceImpl implements ActivityRemoteDataSource {
+class ActivityRemoteDataSourceImpl extends BaseRemoteDataSource implements ActivityRemoteDataSource {
   final Dio dio;
   ActivityRemoteDataSourceImpl({required this.dio});
 
@@ -22,7 +23,7 @@ class ActivityRemoteDataSourceImpl implements ActivityRemoteDataSource {
   }
   @override
   Future<PaginatedModel<ActivityItemModel>> getActivities({int? studentId, int page = 1}) async {
-    try {
+    return execute(() async {
       // 1. تجهيز المعاملات بشكل صحيح لضمان وصولها للسيرفر
       final Map<String, dynamic> params = {'page': page};
       if (studentId != null) {
@@ -39,19 +40,13 @@ class ActivityRemoteDataSourceImpl implements ActivityRemoteDataSource {
         response.data as Map<String, dynamic>,
             (itemJson) => ActivityItemModel.fromJson(itemJson as Map<String, dynamic>),
       );
+    });
 
-    } on DioException catch (e) {
-      // معالجة أفضل للأخطاء القادمة من السيرفر
-      throw ServerException(
-          message: e.response?.data?['message'] ?? 'خطأ في الاتصال بالأنشطة');
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
-  }
+}
 
   @override
   Future<int> getUnreadCount({int? studentId}) async {
-    try {
+    return execute(() async {
       final response = await dio.get(
         '/api/user/activity-unread-count',
         queryParameters: studentId != null ? {'student_id': studentId} : null,
@@ -59,24 +54,17 @@ class ActivityRemoteDataSourceImpl implements ActivityRemoteDataSource {
       // TODO: تأكد اسم الحقل بالاستجابة الفعلية (شفنا قبل إنو
       // alerts استخدمت "alerts" مش "count" — ممكن هون كمان يختلف).
       return (response.data['data']?['count'] as num?)?.toInt() ?? 0;
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
+    });
   }
 
   @override
   Future<void> markAllAsRead({int? studentId}) async {
-    try {
+    return execute(() async {
       await dio.post(
         '/api/user/activity-mark-all-read',
         queryParameters: studentId != null ? {'student_id': studentId} : null,
       );
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
+    });
+
   }
 }

@@ -114,7 +114,12 @@ class _ActivitiesViewState extends State<_ActivitiesView> {
 
                   final loaded = state as ActivitiesLoaded;
                   final sorted = [...loaded.items]
-                    ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                    ..sort((a, b) {
+                      final timeCompare = a.createdAt.compareTo(b.createdAt);
+                      if (timeCompare != 0) return timeCompare;
+                      // نفس الوقت → رتّب على الـ id (ثابت ومتوقّع)
+                      return a.id.compareTo(b.id);
+                    });
                   final displayList = sorted.reversed.toList();
 
                   if (displayList.isEmpty) {

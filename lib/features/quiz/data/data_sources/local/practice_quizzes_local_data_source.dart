@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../../core/errors/exceptions.dart';
 import '../../../../subject/data/models/subject_model.dart';
 import '../../models/quiz_list_item_model.dart';
 
@@ -26,7 +27,7 @@ class PracticeQuizzesLocalDataSourceImpl implements PracticeQuizzesLocalDataSour
       final List decodedList = json.decode(jsonString);
       return decodedList.map((jsonItem) => SubjectModel.fromJson(jsonItem)).toList();
     } else {
-      throw Exception('No cached subjects found');
+      throw EmptyCacheException();
     }
   }
 
@@ -43,7 +44,7 @@ class PracticeQuizzesLocalDataSourceImpl implements PracticeQuizzesLocalDataSour
       final List decodedList = json.decode(jsonString);
       return decodedList.map((jsonItem) => QuizListItemModel.fromJson(jsonItem)).toList();
     } else {
-      throw Exception('No cached quizzes found for this subject');
+      throw EmptyCacheException();
     }
   }
 
@@ -59,6 +60,7 @@ class PracticeQuizzesLocalDataSourceImpl implements PracticeQuizzesLocalDataSour
       'progress_msg': quiz.progressMsg,
       'created_at': quiz.createdAt,
     }).toList();
-    await sharedPreferences.setString('$cachedQuizzesKeyPrefix$subjectId', json.encode(jsonList));
+    await sharedPreferences.setString(
+        '$cachedQuizzesKeyPrefix$subjectId', json.encode(jsonList));
   }
 }

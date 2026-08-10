@@ -139,7 +139,12 @@ class _HomeworksViewState extends State<_HomeworksView> {
 
                     final loaded = state as HomeworksLoaded;
                     final sorted = [...loaded.items]
-                      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                      ..sort((a, b) {
+                        final timeCompare = a.createdAt.compareTo(b.createdAt);
+                        if (timeCompare != 0) return timeCompare;
+                        return a.id.compareTo(b.id);
+                      });
+
                     final displayList = sorted.reversed.toList();
 
                     if (displayList.isEmpty) {

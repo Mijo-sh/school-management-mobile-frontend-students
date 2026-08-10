@@ -6,17 +6,21 @@ import 'package:school_management_mobile_frontend_students/features/shared/prese
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/injector/injector_container.dart';
+import '../../../../core/notification_types.dart';
 import '../../../../core/notifications/domain/repositories/push_notification_repository.dart';
-import '../../../../core/unread_counts_store.dart';
 import '../../domain/entities/paginated.dart';
 import 'feed_state.dart';
+
 /// كيوبت عام لأي "قائمة قابلة للقراءة" مع Pagination — تنبيهات،
-/// إعلانات، أنشطة، وأي فيتشر مستقبلي مشابه (علامات، تقييمات...).
+/// إعلانات، أنشطة، تقييمات، وظائف، علامات.
 ///
-/// كل فيتشر جديد بيرث منها ويعرّف بس دالتين (`fetchPage`, `markAllRead`)
-/// — الباقي (تحميل، صفحات، تصفير صامت بالخلفية، الاستماع للإشعارات
-/// اللحظية وتحديث القائمة تلقائيًا، تحديث البادج المركزي) موحّد هون
-/// مرة وحدة بس.
+/// كل فيتشر بيرث منها ويعرّف:
+///   - fetchPage / markAllRead : جلب صفحة / تصفير بالسيرفر
+///   - notificationTypes       : أنواع الإشعارات اللي تخصّه (للفلترة)
+///   - clearBadge              : تصفير عدّاده المركزي محليًا
+///
+/// الباقي (تحميل، صفحات، تصفير صامت، الفلترة الذكية للإشعارات) موحّد
+/// هون مرة وحدة.
 abstract class FeedCubit<T extends ReadableFeedItem> extends Cubit<FeedState<T>> {
   final int? studentId;
 
@@ -27,18 +31,28 @@ abstract class FeedCubit<T extends ReadableFeedItem> extends Cubit<FeedState<T>>
   StreamSubscription<Map<String, dynamic>>? _foregroundSub;
 
   FeedCubit({this.studentId}) : super(FeedInitial<T>()) {
-    // لو وصل إشعار والمستخدم فاتح هالصفحة بالذات، منعيد جلب القائمة
-    // فورًا حتى يبين العنصر الجديد مباشرة.
-    _foregroundSub = di<PushNotificationRepository>().onForegroundMessage.listen((_) {
-      load();
-    });
+    // فلترة ذكية: منعيد تحميل القائمة فقط لو الإشعار يخص هالفيتشر.
+    // (قبلها كان أي إشعار يعيد تحميل كل القوائم المفتوحة — هدر.)
+    _foregroundSub =
+        di<PushNotificationRepository>().onForegroundMessage.listen((data) {
+          final type = resolveNotificationType(data);
+          if (type != null && notificationTypes.contains(type)) {
+            load();
+          }
+        });
   }
 
-  // ── الدالتين يلي كل فيتشر لازم يعرّفهم ──────────────────────
+  // ── يعرّفهم كل فيتشر ─────────────────────────────────────────
   Future<Either<Failure, Paginated<T>>> fetchPage({required int page});
   Future<Either<Failure, Unit>> markAllRead();
 
-  // ── المنطق المشترك (موحّد هون مرة وحدة) ─────────────────────
+  /// أنواع الإشعارات اللي تخص هالفيتشر (للفلترة).
+  Set<String> get notificationTypes;
+
+  /// تصفير عدّاد هالفيتشر المركزي محليًا (بدون نداء).
+  void clearBadge();
+
+  // ── المنطق المشترك ──────────────────────────────────────────
   Future<void> load() async {
     _currentPage = 1;
     _allItems.clear();
@@ -46,14 +60,14 @@ abstract class FeedCubit<T extends ReadableFeedItem> extends Cubit<FeedState<T>>
 
     final result = await fetchPage(page: 1);
     result.fold(
-      (failure) => emit(FeedError<T>(failure.message)),
-      (paginated) {
+          (failure) => emit(FeedError<T>(failure.message)),
+          (paginated) {
         _allItems.addAll(paginated.items);
         final hasMore = paginated.currentPage < paginated.lastPage;
         emit(FeedLoaded<T>(List.from(_allItems), hasMore: hasMore));
 
-        // تأخير مقصود لتجربة مستخدم جميلة (رؤية حالة غير المقروء
-        // قبل ما تتحول) قبل التصفير الصامت بالخلفية.
+        // تأخير مقصود لتجربة جميلة (رؤية غير المقروء قبل ما يتحوّل)
+        // قبل التصفير الصامت بالخلفية.
         Future.delayed(const Duration(milliseconds: 900), markAsRead);
       },
     );
@@ -70,11 +84,11 @@ abstract class FeedCubit<T extends ReadableFeedItem> extends Cubit<FeedState<T>>
 
     final result = await fetchPage(page: _currentPage);
     result.fold(
-      (failure) {
+          (failure) {
         _isFetchingMore = false;
         _currentPage--;
       },
-      (paginated) {
+          (paginated) {
         _allItems.addAll(paginated.items);
         final hasMore = paginated.currentPage < paginated.lastPage;
         emit(FeedLoaded<T>(List.from(_allItems), hasMore: hasMore));
@@ -92,12 +106,12 @@ abstract class FeedCubit<T extends ReadableFeedItem> extends Cubit<FeedState<T>>
 
     final result = await markAllRead();
     result.fold(
-      (failure) {
+          (failure) {
         if (state is FeedLoaded<T>) emit(current); // rollback بصمت
       },
-      (_) {
-        // نحدّث البادج المركزي فورًا — ما لازم ننتظر أي إشعار جديد.
-        di<UnreadCountsStore>().refreshNow();
+          (_) {
+        // تصفير العدّاد المركزي محليًا فورًا (بدون جلب الكل).
+        clearBadge();
       },
     );
   }

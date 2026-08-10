@@ -52,3 +52,10 @@ class LastAttemptLoadedState extends PracticeQuizzesState {
   final LastAttemptDetailsEntity lastAttemptDetails;
   LastAttemptLoadedState(this.lastAttemptDetails);
 }
+
+// حالة خاصة بنتيجة الإرسال المباشر (تفادياً لتعارضها مع LastAttemptLoadedState
+// التي تستمع لها أيضاً شاشة قائمة الكويزات عند الضغط على "عرض الحل السابق")
+class QuizResultReadyState extends PracticeQuizzesState {
+  final LastAttemptDetailsEntity lastAttemptDetails;
+  QuizResultReadyState(this.lastAttemptDetails);
+}

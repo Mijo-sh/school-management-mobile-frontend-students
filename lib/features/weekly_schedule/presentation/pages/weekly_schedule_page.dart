@@ -1,106 +1,73 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
-import 'package:school_management_mobile_frontend_students/features/shared/presentation/widgets/curved_header_bar.dart';
 import 'package:share_plus/share_plus.dart';
-import 'dart:typed_data';
+
+import '../../../../core/injector/injector_container.dart';
+import '../../../shared/presentation/widgets/curved_header_bar.dart';
+// 👇 عدّلي المسار حسب مكان GetCachedUserUsecase عندك
+import '../../../profile/domain/use_cases/get_cached_user_usecase.dart';
+import '../../domain/entities/schedule_entry.dart';
+import '../manager/schedule_cubit (1).dart';
+import '../manager/schedule_state (1).dart';
 
 
 Color colorForSubjectName(String subject) {
   const palette = [
-    Color(0xFFE88D9E), // زهري ناعم
-    Color(0xFF9B72CF), // بنفسجي هادئ
-    Color(0xFF53A6D8), // أزرق سماوي صافي
-    Color(0xFF75B798), // أخضر مريح
-    Color(0xFFE2C95F), // أصفر دافئ
-    Color(0xFFB07D62), // بني ترابي
-    Color(0xFF38B6AB), // لون توركواز من عندك
-    // Color(0xFFD35252), // أحمر دافئ وهادئ
-    // Color(0xFF7E858E),
+    Color(0xFFE88D9E),
+    Color(0xFF9B72CF),
+    Color(0xFF53A6D8),
+    Color(0xFF75B798),
+    Color(0xFFE2C95F),
+    Color(0xFFB07D62),
+    Color(0xFF38B6AB),
   ];
   final hash = subject.codeUnits.fold<int>(0, (sum, c) => sum + c);
   return palette[hash % palette.length];
 }
 
-class ScheduleEntry {
-  final int dayIndex;
-  final int periodIndex;
-  final String subject;
-  final String teacher;
-  final String room;
-  final String imagePath; // ── مسار الصورة الخاص بكل مادة
-
-  const ScheduleEntry({
-    required this.dayIndex,
-    required this.periodIndex,
-    required this.subject,
-    required this.teacher,
-    required this.room,
-    required this.imagePath,
-  });
-
-  Color get color => colorForSubjectName(subject);
+/// صورة المادة: نجرّب اسم المادة أولًا، وإلا صورة احتياطية.
+String imageForSubject(String? subject) {
+  if (subject == null || subject.isEmpty) return 'assets/images/subject1.png';
+  return 'assets/images/$subject.png';
 }
 
-class WeeklySchedulePage extends StatefulWidget {
+class WeeklySchedulePage extends StatelessWidget {
+  /// اختياري: الأب يمرّر id الابن. الطالب لا يمرّر شيء (نجيبه من الجلسة).
   final int? studentId;
 
   const WeeklySchedulePage({super.key, this.studentId});
 
   @override
-  State<WeeklySchedulePage> createState() => _WeeklySchedulePageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => di<ScheduleCubit>(),
+      child: _WeeklyScheduleView(studentId: studentId),
+    );
+  }
 }
 
-class _WeeklySchedulePageState extends State<WeeklySchedulePage> {
-  static const List<String> _days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+class _WeeklyScheduleView extends StatefulWidget {
+  final int? studentId;
+  const _WeeklyScheduleView({this.studentId});
 
-  static const List<String> _periodLabels = [
-    '08:00', '08:45', '09:30', '10:15', '11:00', '11:45', '12:30',
+  @override
+  State<_WeeklyScheduleView> createState() => _WeeklyScheduleViewState();
+}
+
+class _WeeklyScheduleViewState extends State<_WeeklyScheduleView> {
+  static const List<String> _dayKeys = [
+    'sunday', 'monday', 'tuesday', 'wednesday', 'thursday'
   ];
-
-  // ── تم ربط كل مادة بصورتها الخاصة (من subject1 إلى subject7) بالترتيب
-  static const List<({String subject, String teacher, String room, String imagePath})> _subjectsPool = [
-    (subject: 'رياضيات', teacher: 'أ. خالد العبيد', room: 'قاعة 12', imagePath: 'assets/images/subject1.png'),
-    (subject: 'رياضة', teacher: 'أ. عمر فارس', room: 'الملعب', imagePath: 'assets/images/subject2.png'),
-    (subject: 'علوم', teacher: 'أ. ريم يوسف', room: 'مختبر 1', imagePath: 'assets/images/subject3.png'),
-    (subject: 'إنكليزي', teacher: 'أ. رنا سعيد', room: 'قاعة 5', imagePath: 'assets/images/subject4.png'),
-    (subject: 'جغرافيا', teacher: 'أ. فادي حمدان', room: 'قاعة 7', imagePath: 'assets/images/subject5.png'),
-    (subject: 'عربي', teacher: 'أ. لينا حسن', room: 'قاعة 12', imagePath: 'assets/images/subject6.png'),
-    (subject: 'فرنسي', teacher: 'أ. ديمة سلوم', room: 'قاعة 9', imagePath: 'assets/images/subject7.png'),
+  static const List<String> _dayLabels = [
+    'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'
   ];
-
-  static List<ScheduleEntry> get _mockEntries {
-    final entries = <ScheduleEntry>[];
-    for (int day = 0; day < _days.length; day++) {
-      for (int period = 0; period < _periodLabels.length; period++) {
-        final subjectIndex = (day * 3 + period) % _subjectsPool.length;
-        final s = _subjectsPool[subjectIndex];
-        entries.add(ScheduleEntry(
-          dayIndex: day,
-          periodIndex: period,
-          subject: s.subject,
-          teacher: s.teacher,
-          room: s.room,
-          imagePath: s.imagePath,
-        ));
-      }
-    }
-    return entries;
-  }
-
-  ScheduleEntry? _entryAt(int day, int period) {
-    for (final e in _mockEntries) {
-      if (e.dayIndex == day && e.periodIndex == period) return e;
-    }
-    return null;
-  }
 
   static int? get _actualTodayIndex {
     final weekday = DateTime.now().weekday;
@@ -114,16 +81,44 @@ class _WeeklySchedulePageState extends State<WeeklySchedulePage> {
   final GlobalKey _captureKey = GlobalKey();
   bool _isProcessing = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  /// يحدّد id الطالب (من الأب أو من الجلسة) ثم يجلب البرنامج.
+  Future<void> _init() async {
+    final id = await _resolveStudentId();
+    if (id == null) {
+      if (mounted) {
+        context.read<ScheduleCubit>().emitError('تعذّر تحديد الطالب');
+      }
+      return;
+    }
+    if (mounted) context.read<ScheduleCubit>().fetchWeekly(id);
+  }
+
+  /// لو الأب مرّر studentId نستخدمه، وإلا نجيب id الطالب من الجلسة.
+  Future<int?> _resolveStudentId() async {
+    if (widget.studentId != null) return widget.studentId;
+
+    final userResult = await di<GetCachedUserUsecase>()();
+    return userResult.fold((_) => null, (user) => user?.id);
+  }
+
   Future<Uint8List> _captureBytes() async {
-    final boundary = _captureKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+    final boundary =
+    _captureKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
     final image = await boundary.toImage(pixelRatio: 2.5);
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
   }
 
-  void _showError(String message) {
+  void _showMsg(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _shareAsImage() async {
@@ -132,13 +127,14 @@ class _WeeklySchedulePageState extends State<WeeklySchedulePage> {
     try {
       final bytes = await _captureBytes();
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/weekly_schedule_${DateTime.now().millisecondsSinceEpoch}.png');
+      final file = File(
+          '${dir.path}/weekly_schedule_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(bytes);
       await SharePlus.instance.share(
         ShareParams(files: [XFile(file.path)], text: 'برنامج الأسبوع'),
       );
     } catch (_) {
-      _showError('تعذّرت المشاركة، حاول مجددًا');
+      _showMsg('تعذّرت المشاركة، حاول مجددًا');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -149,13 +145,11 @@ class _WeeklySchedulePageState extends State<WeeklySchedulePage> {
     setState(() => _isProcessing = true);
     try {
       final bytes = await _captureBytes();
-      await Gal.putImageBytes(
-        bytes,
-        name: 'weekly_schedule_${DateTime.now().millisecondsSinceEpoch}',
-      );
-      _showError('تم حفظ الصورة بالمعرض بنجاح');
+      await Gal.putImageBytes(bytes,
+          name: 'weekly_schedule_${DateTime.now().millisecondsSinceEpoch}');
+      _showMsg('تم حفظ الصورة بالمعرض بنجاح');
     } catch (_) {
-      _showError('تعذّر الحفظ — تأكد من صلاحية الوصول للمعرض');
+      _showMsg('تعذّر الحفظ — تأكد من صلاحية الوصول للمعرض');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -180,7 +174,9 @@ class _WeeklySchedulePageState extends State<WeeklySchedulePage> {
                 Container(
                   width: 40, height: 4,
                   margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(color: cs.outlineVariant, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(
+                      color: cs.outlineVariant,
+                      borderRadius: BorderRadius.circular(2)),
                 ),
                 _ExportOptionTile(
                   icon: Icons.image_outlined,
@@ -208,6 +204,7 @@ class _WeeklySchedulePageState extends State<WeeklySchedulePage> {
 
   void _showDetails(BuildContext context, ScheduleEntry entry) {
     final cs = Theme.of(context).colorScheme;
+    final color = colorForSubjectName(entry.subjectName ?? '');
     showModalBottomSheet(
       context: context,
       backgroundColor: cs.surfaceContainerLowest,
@@ -216,241 +213,277 @@ class _WeeklySchedulePageState extends State<WeeklySchedulePage> {
       ),
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  margin: const EdgeInsets.only(bottom: 18),
-                  decoration: BoxDecoration(color: cs.outlineVariant, borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              Row(
-                children: [
-                  Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(color: entry.color.withOpacity(0.15), shape: BoxShape.circle),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Image.asset(entry.imagePath, errorBuilder: (_, __, ___) => Icon(Icons.menu_book_rounded, color: entry.color)),
-                    ),
+        child: SafeArea( // 👈 تم إضافة SafeArea هنا ليصبح المحتوى آمناً ومحمياً بالكامل
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    margin: const EdgeInsets.only(bottom: 18),
+                    decoration: BoxDecoration(
+                        color: cs.outlineVariant,
+                        borderRadius: BorderRadius.circular(2)),
                   ),
-                  const SizedBox(width: 12),
-                  Text(entry.subject, style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: cs.onSurface)),
-                ],
-              ),
-              const SizedBox(height: 18),
-              _DetailRow(icon: Icons.person_outline_rounded, label: 'المدرّس', value: entry.teacher),
-              const SizedBox(height: 10),
-              _DetailRow(icon: Icons.meeting_room_outlined, label: 'القاعة', value: entry.room),
-              const SizedBox(height: 10),
-              _DetailRow(icon: Icons.access_time_rounded, label: 'الوقت', value: _periodLabels[entry.periodIndex]),
-            ],
+                ),
+                Row(
+                  children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                          color: color.withOpacity(0.15), shape: BoxShape.circle),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Image.asset(
+                          imageForSubject(entry.subjectName),
+                          errorBuilder: (_, __, ___) =>
+                              Icon(Icons.menu_book_rounded, color: color),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(entry.subjectName ?? '—',
+                          style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.bold,
+                              color: cs.onSurface)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _DetailRow(
+                    icon: Icons.person_outline_rounded,
+                    label: 'المدرّس',
+                    value: entry.teacherName ?? '—'),
+                const SizedBox(height: 10),
+                _DetailRow(
+                    icon: Icons.access_time_rounded,
+                    label: 'الوقت',
+                    value: '${entry.startTime} - ${entry.endTime}'),
+              ],
+            ),
           ),
         ),
       ),
     );
-  }
-
-  @override
+  }@override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final actualToday = _actualTodayIndex;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: cs.surface,
-        floatingActionButton: FloatingActionButton(
-          onPressed: _isProcessing ? null : _showExportOptions,
-          backgroundColor: cs.primary,
-          child: _isProcessing
-              ? SizedBox(
-            width: 22, height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.2, color: cs.onPrimary),
-          )
-              : Icon(Icons.more_horiz_rounded, color: cs.onPrimary),
-        ),
-        body: Column(
+    return Scaffold(
+      backgroundColor: cs.surface,
+      body: BlocListener<ScheduleCubit, ScheduleState>(
+        listener: (context, state) {
+          // 1. إذا ظهرت رسالة تحذيرية (يعني يتم عرض الكاش القديم بسبب مشكلة)
+          if (state is ScheduleLoaded && state.warningMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.warningMessage!),
+                backgroundColor: cs.error, // لون تحذيري
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+
+          // 2. إذا حدث خطأ كامل (فشل الاتصال ولا يوجد كاش)
+          if (state is ScheduleError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: cs.error,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        },
+        child: Column(
           children: [
             const CurvedHeaderBar(
               title: 'برنامج الأسبوع',
               backgroundImage: 'assets/images/background_login.jpg',
             ),
-
-            // ── شريط أفقي بأسماء المواد وصورها الخاصة ──
-            Padding(
-              padding: const EdgeInsets.only(top: 14),
-              child: SizedBox(
-                height: 34,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _subjectsPool.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, i) {
-                    final s = _subjectsPool[i];
-                    final subjectColor = colorForSubjectName(s.subject);
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: subjectColor.withOpacity(0.10),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: subjectColor.withOpacity(0.35), width: 1),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Image.asset(
-                            s.imagePath,
-                            width: 16,
-                            height: 16,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 8, height: 8,
-                              decoration: BoxDecoration(shape: BoxShape.circle, color: subjectColor),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            s.subject,
-                            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: subjectColor),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            // ── الجزء يلي بينلقط بالصورة/PDF ──
             Expanded(
-              child: RepaintBoundary(
-                key: _captureKey,
-                child: Container(
-                  color: cs.surface,
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 14, 12, 4),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 52),
-                            ...List.generate(_days.length, (i) {
-                              final isSelected = i == _selectedDayIndex;
-                              final isActualToday = i == actualToday;
+              child: BlocBuilder<ScheduleCubit, ScheduleState>(
+                builder: (context, state) {
+                  if (state is ScheduleLoading || state is ScheduleInitial) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                              return Expanded(
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => setState(() => _selectedDayIndex = i),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? cs.primary : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          _days[i],
-                                          style: TextStyle(
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: isSelected ? cs.onPrimary : cs.primary,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Container(
-                                          width: 4, height: 4,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: isActualToday
-                                                ? (isSelected ? cs.onPrimary : cs.primary)
-                                                : Colors.transparent,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
+                  // إذا حدث خطأ كامل ولا يوجد كاش، نعرض رسالة خطأ مع زر إعادة محاولة
+                  if (state is ScheduleError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline_rounded, size: 48, color: cs.error),
+                            const SizedBox(height: 12),
+                            Text(
+                              state.message,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: cs.error, fontSize: 15),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () => _init(),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('إعادة المحاولة'),
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Expanded(
-                        child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-                          itemCount: _periodLabels.length,
-                          itemBuilder: (context, periodIndex) {
-                            final isOddRow = periodIndex.isOdd;
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isOddRow ? cs.surfaceContainer.withOpacity(0.35) : Colors.transparent,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: SizedBox(
-                                height: 62,
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    SizedBox(
-                                      width: 52,
-                                      child: Center(
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: cs.primary.withOpacity(0.08),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            _periodLabels[periodIndex],
-                                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: cs.primary),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    ...List.generate(_days.length, (dayIndex) {
-                                      final entry = _entryAt(dayIndex, periodIndex);
-                                      final isSelectedCol = dayIndex == _selectedDayIndex;
+                    );
+                  }
 
-                                      return Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 3),
-                                          child: entry == null
-                                              ? _EmptyCell(highlighted: isSelectedCol)
-                                              : _FilledCell(
-                                            entry: entry,
-                                            highlighted: isSelectedCol,
-                                            onTap: () => _showDetails(context, entry),
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                  // هنا سواء كانت البيانات جديدة أو من الكاش (ScheduleLoaded)، سيتم عرض الجدول طبيعياً
+                  final schedule = (state as ScheduleLoaded).schedule;
+                  return _buildContent(cs, schedule);
+                },
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(ColorScheme cs, WeeklySchedule schedule) {
+    final actualToday = _actualTodayIndex;
+    final selectedKey = _dayKeys[_selectedDayIndex];
+    final dayEntries = schedule[selectedKey] ?? [];
+
+    return RepaintBoundary(
+      key: _captureKey,
+      child: Container(
+        color: cs.surface,
+        child: Column(
+          children: [
+            _DayStrip(
+              dayLabels: _dayLabels,
+              selectedIndex: _selectedDayIndex,
+              actualTodayIndex: actualToday,
+              onSelect: (i) => setState(() => _selectedDayIndex = i),
+            ),
+            const SizedBox(height: 6),
+            Expanded(
+              child: dayEntries.isEmpty
+                  ? Center(
+                  child: Text('ما في حصص بهذا اليوم',
+                      style: TextStyle(
+                          color: cs.onSurface.withOpacity(0.5),
+                          fontSize: 14)))
+                  : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 90),
+                itemCount: dayEntries.length,
+                itemBuilder: (context, index) {
+                  final entry = dayEntries[index];
+                  return _PeriodCard(
+                    entry: entry,
+                    onTap: () => _showDetails(context, entry),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PeriodCard extends StatelessWidget {
+  final ScheduleEntry entry;
+  final VoidCallback onTap;
+
+  const _PeriodCard({required this.entry, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final color = colorForSubjectName(entry.subjectName ?? '');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: color.withOpacity(0.4), width: 1.2),
+            ),
+            child: Row(
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      width: 34, height: 34,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.18),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text('${entry.periodIndex}',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: color,
+                              fontSize: 15)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(entry.startTime,
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: cs.onSurface.withOpacity(0.5))),
+                  ],
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  width: 46, height: 46,
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Image.asset(
+                    imageForSubject(entry.subjectName),
+                    errorBuilder: (_, __, ___) =>
+                        Icon(Icons.menu_book_rounded, color: color, size: 22),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(entry.subjectName ?? '—',
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: cs.onSurface)),
+                      const SizedBox(height: 3),
+                      Text(entry.teacherName ?? '',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              color: cs.onSurface.withOpacity(0.6))),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_left_rounded,
+                    color: cs.onSurface.withOpacity(0.3)),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -462,7 +495,8 @@ class _ExportOptionTile extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _ExportOptionTile({required this.icon, required this.label, required this.onTap});
+  const _ExportOptionTile(
+      {required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -471,82 +505,15 @@ class _ExportOptionTile extends StatelessWidget {
       onTap: onTap,
       leading: Container(
         width: 40, height: 40,
-        decoration: BoxDecoration(color: cs.primary.withOpacity(0.10), shape: BoxShape.circle),
+        decoration: BoxDecoration(
+            color: cs.primary.withOpacity(0.10), shape: BoxShape.circle),
         child: Icon(icon, color: cs.primary, size: 20),
       ),
-      title: Text(label, style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600, color: cs.onSurface)),
-    );
-  }
-}
-
-class _FilledCell extends StatelessWidget {
-  final ScheduleEntry entry;
-  final bool highlighted;
-  final VoidCallback onTap;
-
-  const _FilledCell({required this.entry, required this.highlighted, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-          decoration: BoxDecoration(
-            color: entry.color.withOpacity(highlighted ? 0.22 : 0.13),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: entry.color.withOpacity(highlighted ? 0.9 : 0.45), width: highlighted ? 1.6 : 1),
-            boxShadow: [
-              BoxShadow(color: entry.color.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 3)),
-            ],
-          ),
-          alignment: Alignment.center,
-          child: Column(
-            children: [
-              Opacity(
-                opacity: 0.7,
-                child: Image.asset(
-                  entry.imagePath,
-                  width: 30,
-                  height: 30,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              ),
-              Text(
-                entry.subject,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: entry.color),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyCell extends StatelessWidget {
-  final bool highlighted;
-  const _EmptyCell({required this.highlighted});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      decoration: BoxDecoration(
-        color: highlighted ? cs.surfaceContainer.withOpacity(0.6) : cs.surfaceContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: highlighted ? Border.all(color: cs.primary.withOpacity(0.25), width: 1) : null,
-      ),
-      alignment: Alignment.center,
-      child: Icon(Icons.remove_rounded, size: 16, color: cs.onSurface.withOpacity(0.25)),
+      title: Text(label,
+          style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface)),
     );
   }
 }
@@ -556,7 +523,8 @@ class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _DetailRow({required this.icon, required this.label, required this.value});
+  const _DetailRow(
+      {required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -565,9 +533,167 @@ class _DetailRow extends StatelessWidget {
       children: [
         Icon(icon, size: 19, color: cs.onSurface.withOpacity(0.5)),
         const SizedBox(width: 10),
-        Text('$label:  ', style: TextStyle(fontSize: 13.5, color: cs.onSurface.withOpacity(0.6))),
-        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface)),
+        Text('$label:  ',
+            style:
+            TextStyle(fontSize: 13.5, color: cs.onSurface.withOpacity(0.6))),
+        Expanded(
+          child: Text(value,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface)),
+        ),
       ],
+    );
+  }
+}
+
+/// شريط أيام ثابت — الثلاثاء في المنتصف، مع زيادة الظل الواضح والناعم حول الأطراف وباقي الأيام
+class _DayStrip extends StatelessWidget {
+  final List<String> dayLabels;
+  final int selectedIndex;
+  final int? actualTodayIndex;
+  final ValueChanged<int> onSelect;
+
+  const _DayStrip({
+    required this.dayLabels,
+    required this.selectedIndex,
+    required this.actualTodayIndex,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final bool isLight = Theme.of(context).brightness == Brightness.light;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(dayLabels.length, (index) {
+          final bool isSelected = index == selectedIndex;
+          final bool isTuesdayCenter = index == 2; // الثلاثاء في المنتصف
+          final bool isAdjacent = index == 1 || index == 3; // الاثنين والأربعاء
+          final bool isOuter = index == 0 || index == 4; // الأحد والخميس (الأطراف)
+
+          // الارتفاع: الثلاثاء بارز (74)، الأطراف مخففة (58)، البقية (64)
+          final double itemHeight = isTuesdayCenter ? 74.0 : (isOuter ? 58.0 : 64.0);
+
+          // تخصيص الظل (تمت زيادته ورفع وتيرته حول جميع العناصر)
+          List<BoxShadow> customShadows;
+          if (isSelected) {
+            customShadows = [
+              BoxShadow(
+                color: cs.secondary.withOpacity(0.42),
+                blurRadius: 18,
+                spreadRadius: 1.5,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.14),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ];
+          } else if (isTuesdayCenter) {
+            customShadows = [
+              BoxShadow(
+                color: cs.primary.withOpacity(0.38),
+                blurRadius: 20,
+                spreadRadius: 1.5,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.14),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ];
+          } else if (isAdjacent) {
+            customShadows = [
+              BoxShadow(
+                color: cs.primary.withOpacity(0.32),
+                blurRadius: 22,
+                spreadRadius: 2,
+                offset: const Offset(0, 6),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ];
+          } else {
+            // الأحد والخميس: ظل أدق وأوضح
+            customShadows = [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 12,
+                spreadRadius: 1,
+                offset: const Offset(0, 5),
+              ),
+            ];
+          }
+
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onSelect(index),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              child: SizedBox(
+                width: 52.0,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
+                      height: itemHeight,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? cs.secondary
+                            : (isLight
+                            ? Colors.white.withOpacity(0.9)
+                            : Colors.grey[850]!),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: customShadows,
+                        border: isSelected
+                            ? null
+                            : Border.all(
+                          color: isLight
+                              ? Colors.grey.withOpacity(0.06)
+                              : Colors.white.withOpacity(0.03),
+                          width: 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                          child: Text(
+                            dayLabels[index],
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : cs.onSurface.withOpacity(0.8),
+                              fontSize: isTuesdayCenter ? 13.5 : (isSelected ? 13 : 11.5),
+                              fontWeight:
+                              (isSelected || isTuesdayCenter) ? FontWeight.bold : FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 }

@@ -55,6 +55,7 @@ class PracticeQuizzesCubit extends Cubit<PracticeQuizzesState> {
     final currentState = state as QuizDetailsLoaded;
 
     lastSubmittedAnswers = Map.from(currentState.selectedAnswers);
+    final int quizId = currentState.quizDetail.id;
 
     final List<SubmitAnswerEntity> answersList = currentState.selectedAnswers.entries.map((entry) {
       return SubmitAnswerEntity(
@@ -68,9 +69,15 @@ class PracticeQuizzesCubit extends Cubit<PracticeQuizzesState> {
 
     result.fold(
           (failure) => emit(QuizSubmitError(failure.message)),
-          (_) {
+          (_) async {
         emit(QuizSubmitSuccess());
         fetchQuizzesBySubject(subjectId);
+
+        final lastAttemptResult = await getLastAttemptDetailsUseCase(quizId);
+        lastAttemptResult.fold(
+              (failure) => emit(QuizSubmitError(failure.message)),
+              (lastAttemptDetails) => emit(QuizResultReadyState(lastAttemptDetails)),
+        );
       },
     );
   }

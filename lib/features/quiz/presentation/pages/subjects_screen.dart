@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:school_management_mobile_frontend_students/features/quiz/presentation/pages/quizzes_list_screen.dart';
+import 'package:go_router/go_router.dart';
 import 'package:school_management_mobile_frontend_students/features/shared/presentation/widgets/simble_curved_header.dart';
+import '../../../../core/routing/route_name.dart';
 import '../../../subject/presentation/manager/subjects_cubit.dart';
 import '../manager/practice_quizzes_cubit.dart';
-import '../manager/practice_quizzes_state.dart';
+import '../widgets/quiz_unread_store.dart';
+import '../widgets/subject_quiz_badge.dart';
 import '../../../../core/injector/injector_container.dart';
 
 // قائمة الـ gradients اللي رح تتوزع على الكاردات بالتسلسل
@@ -43,8 +45,6 @@ class SubjectsScreen extends StatelessWidget {
                     return const Center(child: Text('لا توجد مواد متاحّة حالياً'));
                   }
 
-                  // تم استبدال ListView بـ SingleChildScrollView و Column
-                  // ليطابق تماماً بنية صفحة الخدمات ويبدو التباعد موحداً
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(14, 18, 14, 80),
                     child: Column(
@@ -56,28 +56,14 @@ class SubjectsScreen extends StatelessWidget {
                           itemCount: state.subjects.length,
                           itemBuilder: (context, index) {
                             final subject = state.subjects[index];
-                            final gradient = _cardGradients[index % _cardGradients.length];
+                            final gradient =
+                                _cardGradients[index % _cardGradients.length];
                             final imageName = '${subject.subjectName}.png';
 
                             return _SubjectCard(
                               subject: subject,
                               gradient: gradient,
                               imageName: imageName,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => BlocProvider(
-                                      create: (_) => di<PracticeQuizzesCubit>()
-                                        ..fetchQuizzesBySubject(subject.gradeSubjectId),
-                                      child: QuizzesListScreen(
-                                        subjectName: subject.subjectName,
-                                        subjectId: subject.gradeSubjectId,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
                             );
                           },
                         ),
@@ -103,36 +89,68 @@ class SubjectsScreen extends StatelessWidget {
   }
 }
 
-class _SubjectCard extends StatelessWidget {
+class _SubjectCard extends StatefulWidget {
   const _SubjectCard({
     required this.subject,
     required this.gradient,
     required this.imageName,
-    required this.onTap,
   });
 
   final dynamic subject;
   final List<Color> gradient;
   final String imageName;
-  final VoidCallback onTap;
+
+  @override
+  State<_SubjectCard> createState() => _SubjectCardState();
+}
+
+class _SubjectCardState extends State<_SubjectCard> {
+  bool _isLoading = false;
+
+  Future<void> _handleTap(BuildContext context) async {
+    setState(() => _isLoading = true);
+
+    final subjectId = widget.subject.gradeSubjectId;
+
+    // تصفير عدّاد كويزات هذه المادة فورًا (تفاؤلي) — البادج يختفي مباشرة
+    di<QuizUnreadStore>().markSubjectRead(subjectId);
+
+    // إتاحة وقت قصير لبدء الـ Cubit وتجهيزه
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    // إنشاء الـ Cubit وتمريره عبر الـ router (نفس نمط باقي الشاشات)
+    final cubit = di<PracticeQuizzesCubit>()..fetchQuizzesBySubject(subjectId);
+
+    if (!context.mounted) return;
+    context.push(
+      StudentRouteName.practiceQuizzesList,
+      extra: {
+        'cubit': cubit,
+        'subjectName': widget.subject.subjectName,
+        'subjectId': subjectId,
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: _isLoading ? null : () => _handleTap(context),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         height: 90,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
-            colors: gradient,
+            colors: widget.gradient,
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: gradient.first.withOpacity(0.4),
+              color: widget.gradient.first.withOpacity(0.4),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -155,7 +173,8 @@ class _SubjectCard extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                 child: Row(
                   children: [
                     Container(
@@ -167,7 +186,7 @@ class _SubjectCard extends StatelessWidget {
                       ),
                       child: ClipOval(
                         child: Image.asset(
-                          'assets/images/$imageName',
+                          'assets/images/${widget.imageName}',
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => const Icon(
                             Icons.menu_book_rounded,
@@ -180,7 +199,7 @@ class _SubjectCard extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        subject.subjectName,
+                        widget.subject.subjectName,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -195,12 +214,31 @@ class _SubjectCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
+                    _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                   ],
+                ),
+              ),
+
+              // ── بادج عدّاد الكويزات غير المقروءة (بالركن العلوي) ──
+              Positioned(
+                top: 8,
+                right: 8,
+                child: SubjectQuizBadge(
+                  subjectId: widget.subject.gradeSubjectId,
                 ),
               ),
             ],

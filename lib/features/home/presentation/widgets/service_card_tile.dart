@@ -37,8 +37,11 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
       await context.push(RouteName.evaluations, extra: studentId);
     } else if (card.title == 'Homeworks') {          // 👈 السطرين الجداد
       await context.push(RouteName.homeworks, extra: studentId);
-    } else if (card.title == 'Grades') {          // 👈 السطرين الجداد
+    } else if (card.title == 'Grades') { // 👈 السطرين الجداد
       await context.push(RouteName.grades, extra: studentId);
+    }
+    else if (card.title == 'File Helper') {          // 👈 السطرين الجداد
+      await context.push(RouteName.studyMaterials);
     }else {
       return;
     }
@@ -107,7 +110,7 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
       ),
     );
 
-    const badgeCards = {'Alerts', 'Announcements', 'Activities', 'Evaluations','Homeworks','Grades'};
+    const badgeCards = {'Alerts', 'Announcements', 'Activities', 'Evaluations','Homeworks','Grades','Materials'};
     if (!badgeCards.contains(card.title)) return tile;
 
     return Stack(

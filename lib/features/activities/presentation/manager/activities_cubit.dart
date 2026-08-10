@@ -1,6 +1,9 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/failures.dart';
+import '../../../../core/injector/injector_container.dart';
+import '../../../../core/notification_types.dart';
+import '../../../../core/unread_counts_store.dart';
 import '../../../shared/domain/entities/paginated.dart';
 import '../../../shared/presentation/manager/feed_cubit.dart';
 import '../../../shared/presentation/manager/feed_state.dart';
@@ -35,4 +38,10 @@ class ActivitiesCubit extends FeedCubit<ActivityItem> {
   }
 
   Future<void> loadActivities() => load();
+
+  @override
+  void clearBadge() => di<UnreadCountsStore>().clearActivities();
+
+  @override
+  Set<String> get notificationTypes => {NotificationType.activity};
 }

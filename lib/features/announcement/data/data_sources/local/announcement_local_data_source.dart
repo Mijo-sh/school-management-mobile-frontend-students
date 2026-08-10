@@ -30,7 +30,7 @@ class AnnouncementLocalDataSourceImpl implements AnnouncementLocalDataSource {
   Future<List<AnnouncementItemModel>> getCachedAnnouncements({int? studentId}) async {
     final jsonString = sharedPreferences.getString(_keyFor(studentId));
     if (jsonString == null) {
-      throw CacheException();
+      throw  throw EmptyCacheException();
     }
     try {
       final list = jsonDecode(jsonString) as List<dynamic>;

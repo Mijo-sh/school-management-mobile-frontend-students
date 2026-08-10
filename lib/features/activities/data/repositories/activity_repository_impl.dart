@@ -43,14 +43,17 @@ class ActivityRepositoryImpl implements ActivityRepository {
             currentPage: 1,
             lastPage: 1,
           ));
+        } on EmptyCacheException {
+          return Left(ServerFailure(e.message));
         } on CacheException {
           return Left(ServerFailure(e.message));
         }
-      } else {
-        return Left(ServerFailure(e.message));
       }
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+      return Left(ServerFailure(e.message));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 
@@ -61,8 +64,10 @@ class ActivityRepositoryImpl implements ActivityRepository {
       return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 
@@ -71,10 +76,12 @@ class ActivityRepositoryImpl implements ActivityRepository {
     try {
       await remoteDataSource.markAllAsRead(studentId: studentId);
       return const Right(unit);
-    } on ServerException catch (e) {
+    }  on ServerException catch (e) {
       return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 }

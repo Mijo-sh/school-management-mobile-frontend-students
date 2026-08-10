@@ -1,6 +1,9 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/failures.dart';
+import '../../../../core/injector/injector_container.dart';
+import '../../../../core/notification_types.dart';
+import '../../../../core/unread_counts_store.dart';
 import '../../../shared/domain/entities/paginated.dart';
 import '../../../shared/presentation/manager/feed_cubit.dart';
 import '../../../shared/presentation/manager/feed_state.dart';
@@ -38,4 +41,10 @@ class AlertsCubit extends FeedCubit<AlertItem> {
 
   /// اسم بديل — AlertsPage الحالية بتنادي loadAlerts() مش load().
   Future<void> loadAlerts() => load();
+  @override
+  void clearBadge() => di<UnreadCountsStore>().clearAlerts();
+
+  @override
+  Set<String> get notificationTypes => {NotificationType.alert};
+
 }

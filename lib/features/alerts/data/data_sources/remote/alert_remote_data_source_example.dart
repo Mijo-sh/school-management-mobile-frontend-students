@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../../core/errors/exceptions.dart';
+import '../../../../../core/network/base_remote_data_source.dart';
 import '../../../../shared/data/models/paginated_model.dart';
 import '../../models/alert_item_model.dart';
 
@@ -10,7 +11,7 @@ abstract class AlertRemoteDataSource {
   Future<void> markAsRead({int? studentId});
 }
 
-class AlertRemoteDataSourceImpl implements AlertRemoteDataSource {
+class AlertRemoteDataSourceImpl extends BaseRemoteDataSource implements AlertRemoteDataSource {
   final Dio dio;
   AlertRemoteDataSourceImpl({required this.dio});
 
@@ -22,7 +23,7 @@ class AlertRemoteDataSourceImpl implements AlertRemoteDataSource {
 
   @override
   Future<PaginatedModel<AlertItemModel>> getAlerts({int? studentId, int page = 1}) async {
-    try {
+    return execute(() async {
       final response = await dio.get(
         _alertsPath(studentId),
         queryParameters: {'page': page},
@@ -33,41 +34,31 @@ class AlertRemoteDataSourceImpl implements AlertRemoteDataSource {
         response.data as Map<String, dynamic>,
             (itemJson) => AlertItemModel.fromJson(itemJson as Map<String, dynamic>),
       );
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
+    });
+
   }
 
   @override
   Future<int> getUnreadCount({int? studentId}) async {
-    try {
+    return execute(() async {
       final response = await dio.get(
         '/api/user/alerts/unread-count',
         queryParameters: studentId != null ? {'student_id': studentId} : null,
       );
       return (response.data['data']?['alerts'] as num?)?.toInt() ?? 0;
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
+    });
   }
 
   @override
   Future<void> markAsRead({int? studentId}) async {
-    try {
+    return execute(() async {
       await dio.post(
         '/api/user/alerts/mark-all-read',
         queryParameters: studentId != null
             ? {'student_id': studentId, 'category': 'general'}
             : {'category': 'general'},
       );
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
-  }
+     });
+
+}
 }
