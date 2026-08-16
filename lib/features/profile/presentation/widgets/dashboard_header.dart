@@ -98,7 +98,7 @@ class DashboardHeader extends StatelessWidget {
                           if (studentId != null)
                             IconButton(
                               icon: Icon(Icons.arrow_forward_rounded, color: textColor, size: 26),
-                              onPressed: () => context.go(ParentRouteName.home),
+                              onPressed: () => context.push(ParentRouteName.home),
                             ),
                         ]),
                         // داخل الـ Column المسؤول عن الـ Expanded content في ملف dashboard_header.dart

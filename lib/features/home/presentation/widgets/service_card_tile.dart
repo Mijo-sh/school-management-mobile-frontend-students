@@ -110,7 +110,7 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
       ),
     );
 
-    const badgeCards = {'Alerts', 'Announcements', 'Activities', 'Evaluations','Homeworks','Grades','Materials'};
+    const badgeCards = {'Alerts', 'Announcements', 'Activities', 'Evaluations','Homeworks','Grades','File Helper'};
     if (!badgeCards.contains(card.title)) return tile;
 
     return Stack(

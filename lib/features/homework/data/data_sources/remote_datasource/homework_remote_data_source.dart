@@ -1,5 +1,9 @@
+// lib/features/homework/data/data_sources/remote_datasource/homework_remote_data_source.dart
+
 import 'package:dio/dio.dart';
+
 import '../../../../../core/errors/exceptions.dart';
+import '../../../../../core/network/base_remote_data_source.dart';
 import '../../../../shared/data/models/paginated_model.dart';
 import '../../models/homework_item_model.dart';
 
@@ -9,7 +13,8 @@ abstract class HomeworkRemoteDataSource {
   Future<void> markAllAsRead({int? studentId});
 }
 
-class HomeworkRemoteDataSourceImpl implements HomeworkRemoteDataSource {
+class HomeworkRemoteDataSourceImpl extends BaseRemoteDataSource
+    implements HomeworkRemoteDataSource {
   final Dio dio;
   HomeworkRemoteDataSourceImpl({required this.dio});
 
@@ -21,45 +26,56 @@ class HomeworkRemoteDataSourceImpl implements HomeworkRemoteDataSource {
 
   @override
   Future<PaginatedModel<HomeworkItemModel>> getHomeworks({int? studentId, int page = 1}) async {
-    try {
+    return execute(() async {
       final response = await dio.get(_path(studentId), queryParameters: {'page': page});
+
+      final body = response.data;
+      if (body is Map && body['status'] == false) {
+        throw ServerException(
+          message: body['message']?.toString() ?? 'فشل جلب الوظائف',
+        );
+      }
+
       return PaginatedModel<HomeworkItemModel>.fromJson(
-        response.data as Map<String, dynamic>,
-        (item) => HomeworkItemModel.fromJson(item as Map<String, dynamic>),
+        body as Map<String, dynamic>,
+            (item) => HomeworkItemModel.fromJson(item as Map<String, dynamic>),
       );
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
+    });
   }
 
   @override
   Future<int> getUnreadCount({int? studentId}) async {
-    try {
+    return execute(() async {
       final response = await dio.get(
         '/api/user/homeworks/unread-count',
         queryParameters: studentId != null ? {'student_id': studentId} : null,
       );
-      return (response.data['data']?['unread_count'] as num?)?.toInt() ?? 0;
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
+
+      final body = response.data;
+      if (body is Map && body['status'] == false) {
+        throw ServerException(
+          message: body['message']?.toString() ?? 'فشل جلب العدد غير المقروء',
+        );
+      }
+
+      return (body['data']?['unread_count'] as num?)?.toInt() ?? 0;
+    });
   }
 
   @override
   Future<void> markAllAsRead({int? studentId}) async {
-    try {
-      await dio.post(
+    return execute(() async {
+      final response = await dio.post(
         '/api/user/homeworks/mark-all-read',
         queryParameters: studentId != null ? {'student_id': studentId} : null,
       );
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
+
+      final body = response.data;
+      if (body is Map && body['status'] == false) {
+        throw ServerException(
+          message: body['message']?.toString() ?? 'فشل تحديث الحالة',
+        );
+      }
+    });
   }
 }

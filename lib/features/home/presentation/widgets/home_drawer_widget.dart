@@ -5,6 +5,8 @@ import '../../../../../../core/theme/app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/injector/injector_container.dart';
+import '../../../../core/routing/selected_child_holder.dart';
 import '../../../auth/presentation/manager/auth_bloc.dart';
 import '../../../language/presentation/bloc/language_bloc.dart';
 import '../../../shared/domain/entities/user_role.dart';
@@ -25,18 +27,14 @@ class HomeDrawerWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final child = di<SelectedChildHolder>().current;
 
-    // 1. قمنا بلف الـ NavigationDrawer بـ BlocListener لمراقبة عملية تسجيل الخروج
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is LogoutSuccess) {
-          // إغلاق الـ Drawer لتجنب أي تعليق في الواجهة
           context.pop();
-
-          // الانتقال الفوري لصفحة تسجيل الدخول وتصفير سجل التنقل
           context.go(RouteName.logIn);
         } else if (state is AuthError) {
-          // في حال حدوث خطأ أثناء تسجيل الخروج، يمكنك عرض رسالة تنبيهية سريعة
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -66,10 +64,10 @@ class HomeDrawerWidget extends StatelessWidget {
                                   width: 120,
                                   fit: BoxFit.contain
                               ),
-                              SizedBox(height: 10),
+                              const SizedBox(height: 10),
                               Text(
                                 "app_name".tr(context),
-                                style: TextStyle(
+                                style: const TextStyle(
                                     color: AppColors.white,
                                     fontSize: 25
                                 ),
@@ -92,7 +90,7 @@ class HomeDrawerWidget extends StatelessWidget {
               ),
             ),
 
-            // 2. خيار تغيير الثيم تفاعلي ومقرب من الكلمة بشكل أنيق
+            // 2. خيار تغيير الثيم
             BlocBuilder<ThemeBloc, ThemeState>(
               builder: (context, state) {
                 final isDarkTheme = state.type == ThemeType.dark;
@@ -100,7 +98,7 @@ class HomeDrawerWidget extends StatelessWidget {
                 return _buildListTile(
                   context,
                   isDarkTheme ? Icons.dark_mode : Icons.light_mode,
-                  "", // نص فارغ لأننا سنضع النص والـ Switch المخصص سوياً في الـ Row
+                  "",
                       () {
                     context.read<ThemeBloc>().add(ToggleThemeEvent());
                   },
@@ -108,7 +106,7 @@ class HomeDrawerWidget extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text("drawer_theme".tr(context)),
-                      const SizedBox(width: 24), // المسافة الفاصلة بين الكلمة وزر الـ Switch المخصص
+                      const SizedBox(width: 24),
                       GestureDetector(
                         onTap: () {
                           context.read<ThemeBloc>().add(ToggleThemeEvent());
@@ -173,10 +171,18 @@ class HomeDrawerWidget extends StatelessWidget {
               context.pop();
               context.push(RouteName.helpUs);
             }),
+
             _buildListTile(context, Icons.rule, "school_rule".tr(context), () {
               context.pop();
               context.push(RouteName.schoolRules);
             }),
+
+            // الشرط الصحيح داخل قائمة الـ children
+            if (child != null)
+              _buildListTile(context, Icons.report_problem, "complaint_name".tr(context), () {
+                context.pop();
+                context.push(ParentRouteName.childComplaints, extra: child.id);
+              }),
 
             // 7. خيار تسجيل الخروج
             _buildListTile(
@@ -193,7 +199,6 @@ class HomeDrawerWidget extends StatelessWidget {
     );
   }
 
-  // دالة مساعدة موحدة لبناء أسطر القائمة بشكل نظيف ومرن
   Widget _buildListTile(
       BuildContext context,
       IconData icon,

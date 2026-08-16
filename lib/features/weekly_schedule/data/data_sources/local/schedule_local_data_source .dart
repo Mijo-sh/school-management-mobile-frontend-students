@@ -5,19 +5,21 @@ import '../../../../../core/errors/exceptions.dart';
 import '../../models/schedule_entry_model .dart';
 
 abstract class ScheduleLocalDataSource {
-  Future<void> cacheWeekly(int studentId, Map<String, List<ScheduleEntryModel>> schedule);
-  Future<Map<String, List<ScheduleEntryModel>>> getCachedWeekly(int studentId);
+  Future<void> cacheWeekly(int? studentId, Map<String, List<ScheduleEntryModel>> schedule);
+  Future<Map<String, List<ScheduleEntryModel>>> getCachedWeekly(int? studentId);
 }
 
 class ScheduleLocalDataSourceImpl implements ScheduleLocalDataSource {
   final SharedPreferences sharedPreferences;
   const ScheduleLocalDataSourceImpl({required this.sharedPreferences});
 
-  String _keyFor(int studentId) => 'CACHED_SCHEDULE_$studentId';
+  // مفتاح موحّد: للطالب "self" (null)، للأب id الابن.
+  String _keyFor(int? studentId) =>
+      'CACHED_SCHEDULE_${studentId ?? 'self'}';
 
   @override
   Future<void> cacheWeekly(
-      int studentId, Map<String, List<ScheduleEntryModel>> schedule) async {
+      int? studentId, Map<String, List<ScheduleEntryModel>> schedule) async {
     try {
       final jsonMap = schedule.map((day, entries) =>
           MapEntry(day, entries.map((e) => e.toJson()).toList()));
@@ -28,7 +30,7 @@ class ScheduleLocalDataSourceImpl implements ScheduleLocalDataSource {
   }
 
   @override
-  Future<Map<String, List<ScheduleEntryModel>>> getCachedWeekly(int studentId) async {
+  Future<Map<String, List<ScheduleEntryModel>>> getCachedWeekly(int? studentId) async {
     final jsonString = sharedPreferences.getString(_keyFor(studentId));
     if (jsonString == null) throw EmptyCacheException();
     try {

@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:school_management_mobile_frontend_students/features/quiz/presentation/pages/quiz_last_attempt_screen.dart';
 import 'package:school_management_mobile_frontend_students/features/quiz/presentation/pages/quiz_view_screen.dart';
+import '../../../../core/injector/injector_container.dart';
+import '../../../../core/notification_types.dart';
+import '../../../../core/notifications/domain/repositories/push_notification_repository.dart';
 import '../../../shared/presentation/widgets/curved_header_bar.dart';
 import '../manager/practice_quizzes_cubit.dart';
 import '../manager/practice_quizzes_state.dart';
@@ -17,10 +22,40 @@ class QuizzesListScreen extends StatefulWidget {
 }
 
 class _QuizzesListScreenState extends State<QuizzesListScreen> {
+  // الاشتراك بستريم الإشعارات — لتحديث القائمة تلقائياً عند وصول كويز جديد لنفس المادة.
+  StreamSubscription<Map<String, dynamic>>? _notificationSub;
+
   @override
   void initState() {
     super.initState();
     context.read<PracticeQuizzesCubit>().fetchQuizzesBySubject(widget.subjectId);
+
+    // الاستماع لإشعارات foreground: لو وصل كويز جديد لنفس المادة المفتوحة، نحدّث القائمة.
+    _notificationSub =
+        di<PushNotificationRepository>().onForegroundMessage.listen(_onNotification);
+  }
+
+  void _onNotification(Map<String, dynamic> data) {
+    final type = resolveNotificationType(data);
+    if (type != NotificationType.newPracticeQuiz) return;
+
+    // نتأكد إنه الإشعار يخص نفس المادة المفتوحة (إن وُجد grade_subject_id بالحمولة).
+    final incomingSubjectId =
+    int.tryParse(data['grade_subject_id']?.toString() ?? '');
+
+    // لو الحمولة ما فيها معرّف المادة، نحدّث احتياطاً؛ ولو فيها، نحدّث فقط عند التطابق.
+    final bool sameSubject =
+        incomingSubjectId == null || incomingSubjectId == widget.subjectId;
+
+    if (sameSubject && mounted) {
+      context.read<PracticeQuizzesCubit>().fetchQuizzesBySubject(widget.subjectId);
+    }
+  }
+
+  @override
+  void dispose() {
+    _notificationSub?.cancel();
+    super.dispose();
   }
 
   // دالة عرض الديالوغ بناءً على المعدل أو النسبة المئوية
@@ -34,7 +69,6 @@ class _QuizzesListScreenState extends State<QuizzesListScreen> {
     final String message = goodScore
         ? 'أداء رائع في هذا التدريب، استمر بهذا المستوى!'
         : 'راجع الأسئلة التي أخطأت بها وأعد المحاولة، التدريب يصقل مهاراتك.';
-
 
     showDialog(
       context: context,
@@ -120,7 +154,7 @@ class _QuizzesListScreenState extends State<QuizzesListScreen> {
       body: Column(
         children: [
           // ── هيدر الصفحة ──
-          CurvedHeaderBar(title: "${widget.subjectName}",backgroundImage: "assets/images/background_login.jpg",),
+          CurvedHeaderBar(title: "${widget.subjectName}", backgroundImage: "assets/images/background_login.jpg",),
           Expanded(
             child: BlocConsumer<PracticeQuizzesCubit, PracticeQuizzesState>(
               buildWhen: (previous, current) =>
@@ -210,89 +244,6 @@ class _QuizzesListScreenState extends State<QuizzesListScreen> {
     );
   }
 }
-
-// ── هيدر الصفحة ──
-// class _QuizzesHeader extends StatelessWidget {
-//   final String subjectName;
-//   const _QuizzesHeader({required this.subjectName});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final cs = Theme.of(context).colorScheme;
-//
-//     return ClipRRect(
-//       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
-//       child: Container(
-//         color: cs.primary,
-//         child: SafeArea(
-//           bottom: false,
-//           child: Padding(
-//             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-//
-//             child: Row(
-//               children: [
-//                 GestureDetector(
-//                   onTap: () => Navigator.pop(context),
-//                   child: Container(
-//                     width: 38,
-//                     height: 38,
-//                     decoration: BoxDecoration(
-//                       color: Colors.white.withOpacity(0.18),
-//                       borderRadius: BorderRadius.circular(10),
-//                     ),
-//                     child: const Icon(Icons.arrow_back_ios_new_rounded,
-//                         color: Colors.white, size: 18),
-//                   ),
-//                 ),
-//                 const SizedBox(width: 12),
-//                 Container(
-//                   width: 46,
-//                   height: 46,
-//                   padding: const EdgeInsets.all(8),
-//                   decoration: BoxDecoration(
-//                     color: Colors.white.withOpacity(0.18),
-//                     borderRadius: BorderRadius.circular(13),
-//                   ),
-//                   child: Image.asset(
-//                     'assets/images/quiz.png',
-//                     errorBuilder: (_, __, ___) => const Icon(
-//                       Icons.quiz_rounded,
-//                       color: Colors.white,
-//                       size: 24,
-//                     ),
-//                   ),
-//                 ),
-//                 const SizedBox(width: 12),
-//                 Expanded(
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       Text(
-//                         'كويزات: $subjectName',
-//                         style: const TextStyle(
-//                           color: Colors.white,
-//                           fontSize: 18,
-//                           fontWeight: FontWeight.w700,
-//                         ),
-//                       ),
-//                       Text(
-//                         'اختر كويزاً وابدأ',
-//                         style: TextStyle(
-//                           color: Colors.white.withOpacity(0.75),
-//                           fontSize: 13,
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
 
 // ── كارد الكويز ──
 class _QuizCard extends StatefulWidget {

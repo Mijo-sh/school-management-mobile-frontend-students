@@ -1,3 +1,5 @@
+// lib/features/auth/data/repositories/auth_repository_impl.dart
+
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
@@ -21,18 +23,28 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, String>> sendOtp(String phoneNumber) async {
     try {
-      return Right(await remoteDataSource.sendOtp(phoneNumber));
+      final result = await remoteDataSource.sendOtp(phoneNumber);
+      return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return Left(UnExpectedFailure());
     }
   }
 
   @override
   Future<Either<Failure, String>> resendOtp(String phoneNumber) async {
     try {
-      return Right(await remoteDataSource.resendOtp(phoneNumber));
+      final result = await remoteDataSource.resendOtp(phoneNumber);
+      return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 
@@ -55,6 +67,10 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(e.message));
     } on CacheException {
       return const Left(CacheFailure());
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 
@@ -92,13 +108,20 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(e.message));
     } on CacheException {
       return const Left(CacheFailure());
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
+
   @override
   Future<Either<Failure, UserEntity?>> getCachedUser() async {
     try {
       return Right(await localDataSource.getUser());
     } on CacheException {
+      return const Left(CacheFailure());
+    } catch (_) {
       return const Left(CacheFailure());
     }
   }

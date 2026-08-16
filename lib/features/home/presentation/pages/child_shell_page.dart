@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/injector/injector_container.dart';
 import '../../../../core/unread_counts_store.dart';
+import '../../../exam/presentation/widgets/exam_unread_store.dart';
 import '../../../profile/domain/entities/child_card.dart';
 
 class ChildShellPage extends StatefulWidget {
@@ -28,6 +29,8 @@ class _ChildShellPageState extends State<ChildShellPage> with WidgetsBindingObse
 
     // نفس مبدأ StudentShell، بس هون studentId = id الابن.
     di<UnreadCountsStore>().loadAll(studentId: widget.child.id);
+    di<ExamUnreadStore>().loadCounts(studentId: widget.child.id);   // 👈 وهذا؟
+
   }
 
   @override
@@ -42,6 +45,8 @@ class _ChildShellPageState extends State<ChildShellPage> with WidgetsBindingObse
     // لو تبدّل الابن نعيد التحميل.
     if (oldWidget.child.id != widget.child.id) {
       di<UnreadCountsStore>().loadAll(studentId: widget.child.id);
+      di<ExamUnreadStore>().loadCounts(studentId: widget.child.id);   // 👈 وهذا؟
+
     }
   }
 

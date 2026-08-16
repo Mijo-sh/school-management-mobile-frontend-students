@@ -7,7 +7,7 @@ class GetTomorrowScheduleUseCase {
   final ScheduleRepository repository;
   GetTomorrowScheduleUseCase(this.repository);
 
-  Future<Either<Failure, WeeklySchedule>> call(int studentId) {
+  Future<Either<Failure, WeeklySchedule>> call(int? studentId) {
     return repository.getTomorrowSchedule(studentId);
   }
 }

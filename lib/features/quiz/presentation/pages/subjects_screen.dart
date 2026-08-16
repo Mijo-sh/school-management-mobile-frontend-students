@@ -121,7 +121,7 @@ class _SubjectCardState extends State<_SubjectCard> {
     setState(() => _isLoading = false);
 
     // إنشاء الـ Cubit وتمريره عبر الـ router (نفس نمط باقي الشاشات)
-    final cubit = di<PracticeQuizzesCubit>()..fetchQuizzesBySubject(subjectId);
+    final cubit = di<PracticeQuizzesCubit>();
 
     if (!context.mounted) return;
     context.push(

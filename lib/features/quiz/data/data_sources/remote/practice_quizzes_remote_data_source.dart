@@ -80,7 +80,8 @@ class PracticeQuizzesRemoteDataSourceImpl extends BaseRemoteDataSource
     return execute(() async {
       final response =
       await dio.get('/api/user/practice-quizzes/quiz/unread-count');
-      final list = response.data['data']['unread_count'] as List;
+      // ملاحظة: data هي نفسها الـ List مباشرةً، و unread_count موجود داخل كل عنصر.
+      final list = response.data['data'] as List;
       return {
         for (final item in list)
           (item['grade_subject_id'] as num).toInt():
@@ -88,6 +89,7 @@ class PracticeQuizzesRemoteDataSourceImpl extends BaseRemoteDataSource
       };
     });
   }
+
   @override
   Future<void> markAllAsRead({required int subjectId}) {
     return execute(() async {

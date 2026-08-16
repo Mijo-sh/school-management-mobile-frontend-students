@@ -33,8 +33,10 @@ class QuizUnreadStore extends ChangeNotifier {
   int countFor(int subjectId) => _counts[subjectId] ?? 0;
 
   void _onMessage(Map<String, dynamic> data) {
-    // بس إشعار الكويز الجديد
-    if (data['type'] != NotificationType.newPracticeQuiz) return;
+    // نستخدم resolveNotificationType لتوحيد قراءة النوع (نفس منطق UnreadCountsStore)
+    final type = resolveNotificationType(data);
+    if (type != NotificationType.newPracticeQuiz) return;
+
     // نداء واحد يعيد جلب كل العدّادات (رخيص لأنه موحّد)
     loadAll();
   }
@@ -42,9 +44,9 @@ class QuizUnreadStore extends ChangeNotifier {
   Future<void> loadAll() async {
     final result = await getUnreadCounts();
     result.fold(
-          (failure) => print('❌ خطأ العدّاد: ${failure.message}'),
+          (failure) => debugPrint('❌ خطأ عدّاد الكويزات: ${failure.message}'),
           (countsMap) {
-        print('✅ العدّادات وصلت: $countsMap');  // ← شوفي شو بينطبع
+        debugPrint('✅ عدّادات الكويزات وصلت: $countsMap');
         _counts
           ..clear()
           ..addAll(countsMap);

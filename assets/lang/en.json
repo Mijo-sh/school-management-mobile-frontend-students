@@ -83,7 +83,10 @@
   "daily_tasks_empty_past": "No tasks on this date",
   "daily_tasks_browse_archive": "Browse previous days",
 
-  "school_rule":"School Rules "
+  "school_rule":"School Rules ",
+
+  "complaint_name": "Complaint"
+
 
 
 }

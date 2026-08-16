@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../exam/presentation/widgets/exam_unread_store.dart';
 import '../../../shared/presentation/widgets/simble_curved_header.dart';
+import '../../../../core/injector/injector_container.dart';
+import '../../../../core/routing/route_name.dart';
 
 class SchedulesHubPage extends StatelessWidget {
-  const SchedulesHubPage({super.key});
+  /// null للطالب نفسه، أو id الابن عند ولي الأمر.
+  final int? studentId;
+
+  const SchedulesHubPage({super.key, this.studentId});
 
   @override
   Widget build(BuildContext context) {
@@ -29,31 +35,33 @@ class SchedulesHubPage extends StatelessWidget {
                     imagePath: 'assets/images/week_schedule.png',
                     gradient: const [Color(0xFF5B8DB8), Color(0xFF89C4E1)],
                     onTap: () {
-                      context.push('/week_schedule');
+                      context.push(RouteName.week_schedule, extra: studentId);
                     },
                   ),
                   const SizedBox(height: 14),
 
-                  // 2. كارد برنامج المذاكرات
+                  // 2. كارد برنامج المذاكرات (type = quiz)
                   _ScheduleCard(
                     title: 'برنامج المذاكرات',
                     subtitle: 'مواعيد المذاكرات والاختبارات القصيرة',
                     imagePath: 'assets/images/test_schedule.png',
                     gradient: const [Color(0xFF8A9E7A), Color(0xFFBDD4AD)],
+                    badgeSelector: (store) => store.quizzesCount,
                     onTap: () {
-                      // TODO: الانتقال لصفحة برنامج المذاكرات
+                      context.push(RouteName.quizSchedule, extra: studentId);
                     },
                   ),
                   const SizedBox(height: 14),
 
-                  // 3. كارد برنامج الامتحانات
+                  // 3. كارد برنامج الامتحانات (type = exam)
                   _ScheduleCard(
                     title: 'برنامج الامتحانات',
                     subtitle: 'جدول الامتحانات الفصلية النهائية',
                     imagePath: 'assets/images/exam_schedule.png',
                     gradient: const [Color(0xFF9A8CA8), Color(0xFFC9BDD6)],
+                    badgeSelector: (store) => store.examsCount,
                     onTap: () {
-                      // TODO: الانتقال لصفحة برنامج الامتحانات
+                      context.push(RouteName.examsSchedule, extra: studentId);
                     },
                   ),
                 ],
@@ -73,12 +81,17 @@ class _ScheduleCard extends StatefulWidget {
   final List<Color> gradient;
   final VoidCallback onTap;
 
+  /// اختياري: دالة تختار العدّاد من الـ store لعرض البادج.
+  /// لو null، ما في بادج (زي كارت برنامج الأسبوع).
+  final int Function(ExamUnreadStore store)? badgeSelector;
+
   const _ScheduleCard({
     required this.title,
     required this.subtitle,
     required this.gradient,
     required this.onTap,
     required this.imagePath,
+    this.badgeSelector,
   });
 
   @override
@@ -96,8 +109,9 @@ class _ScheduleCardState extends State<_ScheduleCard> {
     widget.onTap();
   }
 
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final card = GestureDetector(
       onTap: _isLoading ? null : _handleTap,
       child: Container(
         width: double.infinity,
@@ -217,6 +231,46 @@ class _ScheduleCardState extends State<_ScheduleCard> {
           ),
         ),
       ),
+    );
+
+    if (widget.badgeSelector == null) return card;
+
+    final store = di<ExamUnreadStore>();
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        card,
+        Positioned(
+          top: -6,
+          right: -6,
+          child: ListenableBuilder(
+            listenable: store,
+            builder: (context, _) {
+              final count = widget.badgeSelector!(store);
+              if (count <= 0) return const SizedBox.shrink();
+              return Container(
+                constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1F9D55),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+                child: Center(
+                  child: Text(
+                    count > 99 ? '99+' : count.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

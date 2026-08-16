@@ -29,7 +29,7 @@ class UnreadBadge extends StatelessWidget {
         return store.homeworks;
       case 'Grades':
         return store.grades;
-      case 'Materials':
+      case 'File Helper':
         return store.materials;
       default: // Alerts
         return store.alerts;

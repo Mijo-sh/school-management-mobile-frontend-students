@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/injector/injector_container.dart';
 import '../../../../core/unread_counts_store.dart';
+import '../../../exam/presentation/widgets/exam_unread_store.dart';
 import '../../../quiz/presentation/widgets/quiz_unread_store.dart';
 
 class StudentShell extends StatefulWidget {
@@ -29,6 +30,8 @@ class _StudentShellState extends State<StudentShell> with WidgetsBindingObserver
     // أول ما الطالب يدخل الـ shell، نحمّل العدّادات مرة وحدة.
     di<UnreadCountsStore>().loadAll(); // studentId = null (الطالب نفسو)
     di<QuizUnreadStore>().loadAll();   // عدّادات كويزات كل مادة
+    di<ExamUnreadStore>().loadCounts();   // 👈 وهذا؟
+
   }
 
   @override
@@ -45,6 +48,8 @@ class _StudentShellState extends State<StudentShell> with WidgetsBindingObserver
     if (state == AppLifecycleState.resumed) {
       di<UnreadCountsStore>().loadAll(); // studentId = null (الطالب نفسو)
       di<QuizUnreadStore>().loadAll();
+      di<ExamUnreadStore>().loadCounts();   // 👈 هل هذا موجود؟
+
     }
   }
 

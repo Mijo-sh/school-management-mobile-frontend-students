@@ -1,3 +1,5 @@
+// lib/features/homework/data/repositories/homework_repository_impl.dart
+
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/exceptions.dart';
@@ -43,8 +45,10 @@ class HomeworkRepositoryImpl implements HomeworkRepository {
         }
       }
       return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return Left(UnExpectedFailure());
     }
   }
 
@@ -55,8 +59,10 @@ class HomeworkRepositoryImpl implements HomeworkRepository {
       return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 
@@ -67,8 +73,10 @@ class HomeworkRepositoryImpl implements HomeworkRepository {
       return const Right(unit);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return Left(UnExpectedFailure());
     }
   }
 }

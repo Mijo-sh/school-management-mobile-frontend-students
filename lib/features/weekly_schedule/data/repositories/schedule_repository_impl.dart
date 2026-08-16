@@ -17,7 +17,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   });
 
   @override
-  Future<Either<Failure, WeeklySchedule>> getWeeklySchedule(int studentId) async {
+  Future<Either<Failure, WeeklySchedule>> getWeeklySchedule(int? studentId) async {
     try {
       final schedule = await remoteDataSource.getWeeklySchedule(studentId);
       try {
@@ -39,7 +39,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, WeeklySchedule>> getTomorrowSchedule(int studentId) async {
+  Future<Either<Failure, WeeklySchedule>> getTomorrowSchedule(int? studentId) async {
     try {
       final schedule = await remoteDataSource.getTomorrowSchedule(studentId);
       return Right(schedule);

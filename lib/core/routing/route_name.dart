@@ -20,6 +20,8 @@ class RouteName {
   static const String studyMaterials = '/study-materials';   // 👈 جديد
   static const String schedule = '/schedule';   // 👈 جديد
   static const String week_schedule = '/week_schedule';   // 👈 جديد
+  static const String quizSchedule='/quiz_schedule';
+  static const String examsSchedule='/exam_schedule';
 
 
 }
@@ -37,4 +39,6 @@ class ParentRouteName {
   static const String home = '/parent/home';
   static const String childDashboard = '/parent/child-dashboard';
   static const String childServices = '/parent/child-services';
+  static const String childSchedule = '/parent/child-schedule';
+  static const String childComplaints = '/parent/child-complaints';
 }

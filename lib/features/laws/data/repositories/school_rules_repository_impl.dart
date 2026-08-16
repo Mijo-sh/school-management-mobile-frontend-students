@@ -1,4 +1,7 @@
+// lib/features/school_rules/data/repositories/school_rules_repository_impl.dart
+
 import 'package:dartz/dartz.dart';
+
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/school_rule.dart';
@@ -21,17 +24,31 @@ class SchoolRulesRepositoryImpl implements SchoolRulesRepository {
       // 1. محاولة جلب البيانات من الـ API
       final remoteRules = await remoteDataSource.getSchoolRules();
 
-      // 2. تخزين البيانات بنجاح محلياً للاستخدام لاحقاً
+      // 2. تخزين البيانات بنجاح محلياً للاستخدام لاحقاً[cite: 9]
       await localDataSource.cacheSchoolRules(remoteRules);
 
       return Right(remoteRules);
-    } catch (e) {
-      // 3. في حال فشل الاتصال بالإنترنت، نحاول جلب آخر نسخة مخزنة محلياً
+    } on ServerException catch (e) {
+      // في حال فشل السيرفر، نحاول جلب آخر نسخة مخزنة محلياً
       try {
         final localRules = await localDataSource.getLastSchoolRules();
         return Right(localRules);
-      } catch (cacheError) {
-        return Left(ServerFailure()); // إذا لم توجد كاش ولا إنترنت
+      } on CacheException {
+        return Left(ServerFailure(e.message));
+      }
+    } on UnexpectedException catch (e) {
+      try {
+        final localRules = await localDataSource.getLastSchoolRules();
+        return Right(localRules);
+      } on CacheException {
+        return Left(UnExpectedFailure(e.message));
+      }
+    } catch (_) {
+      try {
+        final localRules = await localDataSource.getLastSchoolRules();
+        return Right(localRules);
+      } on CacheException {
+        return  Left(UnExpectedFailure());
       }
     }
   }

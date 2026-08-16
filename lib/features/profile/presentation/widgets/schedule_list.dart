@@ -1,101 +1,256 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/injector/injector_container.dart';
+import '../../../weekly_schedule/domain/entities/schedule_entry.dart';
+import '../manager/tomorrow_schedule_cubit.dart';
+import '../manager/tomorrow_schedule_state.dart';
+
+/// palette من 7 ألوان.
+const List<Color> _cardPalette = [
+  Color(0xFFE88D9E),
+  Color(0xFF9B72CF),
+  Color(0xFF53A6D8),
+  Color(0xFF75B798),
+  Color(0xFFE2A93B),
+  Color(0xFFB07D62),
+  Color(0xFF38B6AB),
+];
+
+/// لون حسب اسم المادة — نفس المادة دائمًا نفس اللون.
+Color _colorForSubject(String? subject) {
+  final s = subject ?? '';
+  final hash = s.codeUnits.fold<int>(0, (sum, ch) => sum + ch);
+  return _cardPalette[hash % _cardPalette.length];
+}
+
+String _imageForSubject(String? subject) {
+  if (subject == null || subject.isEmpty) return 'assets/images/subject1.png';
+  return 'assets/images/$subject.png';
+}
+
+/// قائمة حصص الغد كـ Sliver. تجيب من API الغد.
+/// [studentId] اختياري: الأب يمرّره، الطالب null (الباك يعرفه من التوكن).
 class DailyScheduleList extends StatelessWidget {
-  const DailyScheduleList({super.key});
+  final int? studentId;
+  const DailyScheduleList({super.key, this.studentId});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    return SliverToBoxAdapter(
+      child: BlocProvider(
+        create: (_) => di<TomorrowScheduleCubit>(),
+        child: _DailyScheduleView(studentId: studentId),
+      ),
+    );
+  }
+}
+
+class _DailyScheduleView extends StatefulWidget {
+  final int? studentId;
+  const _DailyScheduleView({this.studentId});
+
+  @override
+  State<_DailyScheduleView> createState() => _DailyScheduleViewState();
+}
+
+class _DailyScheduleViewState extends State<_DailyScheduleView> {
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    // الطالب: null (الباك يعرفه من التوكن). الأب: id الابن.
+    context.read<TomorrowScheduleCubit>().fetchTomorrow(widget.studentId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return BlocBuilder<TomorrowScheduleCubit, TomorrowScheduleState>(
+      builder: (context, state) {
+        if (state is TomorrowLoading || state is TomorrowInitial) {
+          return const Padding(
+            padding: EdgeInsets.all(30),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (state is TomorrowError) {
+          return Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Text(state.message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: cs.error, fontSize: 14)),
+            ),
+          );
+        }
+
+        final loaded = state as TomorrowLoaded;
+        if (loaded.entries.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(30),
+            child: Center(
+              child: Text('ما في حصص بكرا',
+                  style: TextStyle(
+                      color: cs.onSurface.withOpacity(0.5), fontSize: 14)),
+            ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+          child: Column(
+            children: loaded.entries
+                .map((e) => _TomorrowCard(
+              entry: e,
+              color: _colorForSubject(e.subjectName),
+            ))
+                .toList(),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TomorrowCard extends StatelessWidget {
+  final ScheduleEntry entry;
+  final Color color;
+  const _TomorrowCard({required this.entry, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final bool isLight = Theme.of(context).brightness == Brightness.light;
 
-    // البيانات الخاصة بالجدول
-    const List<Map<String, String>> schedule = [
-      {'time': '08:00 - 08:45 AM', 'subject': 'Mathematics', 'teacher': 'Mr. Khaled Al-Obeid'},
-      {'time': '08:45 - 10:30 AM', 'subject': 'Physics Class', 'teacher': 'Mr. Sameer Al-Khateeb'},
-      {'time': '10:45 - 11:30 AM', 'subject': 'Arabic Language', 'teacher': 'Mr. Marwan Al-Sheikh'},
-      {'time': '08:45 - 10:30 AM', 'subject': 'Physics Class', 'teacher': 'Mr. Sameer Al-Khateeb'},
-      {'time': '10:45 - 11:30 AM', 'subject': 'Arabic Language', 'teacher': 'Mr. Marwan Al-Sheikh'},
-      {'time': '08:45 - 10:30 AM', 'subject': 'Physics Class', 'teacher': 'Mr. Sameer Al-Khateeb'},
-      {'time': '10:45 - 11:30 AM', 'subject': 'Arabic Language', 'teacher': 'Mr. Marwan Al-Sheikh'},
-    ];
-
-    final List<Color> cardColors = [colorScheme.primary, colorScheme.secondary, colorScheme.tertiary];
-
-    return SliverPadding(
-      padding: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-              (context, index) {
-            final Color currentColor = cardColors[index % cardColors.length];
-            return Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isLight ? Colors.white : Colors.grey[850],
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 55, height: 55,
-                    decoration: BoxDecoration(color: currentColor, borderRadius: BorderRadius.circular(18)),
-                    child: Icon(Icons.menu_book_rounded, color: isLight ? Colors.white : Colors.grey[900], size: 24),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isLight ? Colors.white : Colors.grey[850],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.5), width: 1.3),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.10),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Column(
+              children: [
+                Container(
+                  width: 34, height: 34,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.18),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(width: 12),
-                  Stack(
-                    alignment: Alignment.topCenter,
+                  child: Text('${entry.periodIndex}',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                          fontSize: 15)),
+                ),
+                const SizedBox(height: 4),
+                Text(entry.startTime,
+                    style: TextStyle(
+                        fontSize: 10, color: cs.onSurface.withOpacity(0.5))),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Container(
+              width: 46, height: 46,
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Image.asset(
+                _imageForSubject(entry.subjectName),
+                errorBuilder: (_, __, ___) =>
+                    Icon(Icons.menu_book_rounded, color: color, size: 22),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(entry.subjectName ?? '—',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface)),
+                  const SizedBox(height: 6),
+                  Row(
                     children: [
-                      Container(width: 2, height: 50, color: Colors.grey.withOpacity(0.2)),
-                      Positioned(top: 8, child: Container(width: 8, height: 8, decoration: BoxDecoration(color: currentColor, shape: BoxShape.circle))),
+                      Icon(Icons.access_time_rounded,
+                          size: 13, color: cs.onSurface.withOpacity(0.4)),
+                      const SizedBox(width: 4),
+                      Text('${entry.startTime} - ${entry.endTime}',
+                          style: TextStyle(
+                              color: cs.onSurface.withOpacity(0.6),
+                              fontSize: 11)),
                     ],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(schedule[index]['subject']!, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(Icons.access_time_rounded, size: 14, color: Colors.grey[400]),
-                            const SizedBox(width: 4),
-                            Text(schedule[index]['time']!, style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6), fontSize: 11)),
-                            const SizedBox(width: 14),
-                            Icon(Icons.person_outline_rounded, size: 14, color: Colors.grey[400]),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                schedule[index]['teacher']!,
-                                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6), fontSize: 11),
-                                maxLines: 1, overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Icon(Icons.person_outline_rounded,
+                          size: 13, color: cs.onSurface.withOpacity(0.4)),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(entry.teacherName ?? '—',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: cs.onSurface.withOpacity(0.6),
+                                fontSize: 11)),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            );
-          },
-          childCount: schedule.length,
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// هذا الـ Delegate يوضع في الـ CustomScrollView مباشرة في الـ slivers
+/// عنوان مثبّت "حصص الغد".
 class SliverPinnedTitleDelegate extends SliverPersistentHeaderDelegate {
+  final String title;
+  const SliverPinnedTitleDelegate({this.title = 'حصص الغد'});
+
   @override
-  Widget build(context, shrinkOffset, overlapsContent) => Container(
-      color: Theme.of(context).colorScheme.surface,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.only(left: 20),
-      child: Text("Tomorrow's Classes", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)));
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      color: cs.surface,
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 20),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.bold,
+          color: cs.onSurface,
+        ),
+      ),
+    );
+  }
 
   @override
   double get maxExtent => 55.0;

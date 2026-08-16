@@ -1,3 +1,5 @@
+// lib/features/evaluation/data/repositories/evaluation_repository_impl.dart
+
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/exceptions.dart';
@@ -23,7 +25,7 @@ class EvaluationRepositoryImpl implements EvaluationRepository {
     try {
       final result = await remoteDataSource.getEvaluations(studentId: studentId, page: page);
 
-      // نخزّن محليًا بس أول صفحة (الأحدث) — نفس منطق باقي الفيتشرز.
+      // نخزّن محليًا بس أول صفحة (الأحدث) — نفس منطق باقي الفيتشرز.[cite: 8]
       if (page == 1) {
         try {
           await localDataSource.cacheEvaluations(
@@ -44,8 +46,10 @@ class EvaluationRepositoryImpl implements EvaluationRepository {
         }
       }
       return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 
@@ -56,8 +60,10 @@ class EvaluationRepositoryImpl implements EvaluationRepository {
       return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 
@@ -68,8 +74,10 @@ class EvaluationRepositoryImpl implements EvaluationRepository {
       return const Right(unit);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 }

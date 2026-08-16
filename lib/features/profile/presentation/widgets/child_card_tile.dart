@@ -18,8 +18,11 @@ class ChildCardTile extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(26),
       onTap: () {
+        // لسّا منحدّث الـ holder (يُستخدم داخل الفروع لقراءة بيانات الابن)
         di<SelectedChildHolder>().current = child;
-        context.go(ParentRouteName.childDashboard);
+        // 👇 نمرّر childId بالمسار حتى يعتبره go_router تنقّلًا جديدًا
+        //    (المسار يتغيّر فعليًا بين ابن وآخر → يُعاد بناء الـ shell).
+        context.go('${ParentRouteName.childDashboard}?childId=${child.id}');
       },
 
       child: Container(

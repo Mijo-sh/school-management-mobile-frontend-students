@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:school_management_mobile_frontend_students/features/exam/presentation/pages/exam_schedule_pages.dart';
 import 'package:school_management_mobile_frontend_students/features/home/presentation/widgets/drawer_help_us_page.dart';
 import 'package:school_management_mobile_frontend_students/features/marks/presentation/pages/grades_page.dart';
 import '../../features/activities/presentation/pages/activities_page.dart';
@@ -14,6 +15,7 @@ import '../../features/app_intro/presentation/pages/onboarding_page.dart';
 import '../../features/app_intro/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/verification_page.dart';
+import '../../features/complaint/presentation/pages/complaints_page.dart';
 import '../../features/evaluation/presentation/pages/evaluations_page.dart';
 import '../../features/helper/presentation/pages/materials_page.dart';
 import '../../features/home/presentation/pages/child_shell_page.dart';
@@ -70,7 +72,6 @@ class AppRouter {
         builder: (context, state) => const LoginPage(),
       ),
 
-
       GoRoute(
         path: RouteName.verification,
         builder: (context, state) => VerificationPage(
@@ -79,7 +80,7 @@ class AppRouter {
       ),
       GoRoute(
         path: RouteName.randomTasks,
-        builder: (context, state) =>RandomTasksPage(),
+        builder: (context, state) => RandomTasksPage(),
       ),
 
       // 5. Home Shell (الموجه الذكي الذي يفحص الـ Role ويوجه بالـ context.go)
@@ -109,7 +110,19 @@ class AppRouter {
         ),
       ),
 
-      // 7. الـ Stateful Shell Route الخاص بالطالب (للحفاظ على الـ Navigation Bar)
+      // جدول المذاكرات / الامتحانات (يُفتح من SchedulesHubPage عبر push مع studentId)
+      GoRoute(
+        path: RouteName.quizSchedule,
+        builder: (context, state) =>
+            QuizSchedulePage(studentId: state.extra as int?),
+      ),
+      GoRoute(
+        path: RouteName.examsSchedule,
+        builder: (context, state) =>
+            ExamsSchedulePage(studentId: state.extra as int?),
+      ),
+
+      // 7. الـ Stateful Shell Route الخاص بالطالب (5 خانات)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return StudentShell(navigationShell: navigationShell);
@@ -143,14 +156,15 @@ class AppRouter {
                     (
                     title: 'File Helper',
                     image: 'assets/images/helper.png',
-                    color: const Color(0xFF0F9D58),
-                    iconBg: const Color(0xFFDDF5E8)
+                    color: Color(0xFF0F9D58),
+                    iconBg: Color(0xFFDDF5E8)
                     ),
                   ],
                 ),
               ),
             ],
           ),
+          // الفرع الثالث: مساعد AI
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -159,7 +173,7 @@ class AppRouter {
               ),
             ],
           ),
-          // 👇 الفرع الرابع الجديد: المواد التدريبية (Practice Quizzes) لتظهر بالناف بار
+          // الفرع الرابع: المواد التدريبية (Practice Quizzes)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -171,7 +185,7 @@ class AppRouter {
               )
             ],
           ),
-          // الفرع الخامس: برنامج الأسبوع
+          // الفرع الخامس: البرامج (للطالب — studentId = null)
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -183,26 +197,25 @@ class AppRouter {
         ],
       ),
 
-      // 8. الـ Stateful Shell Route الخاص بابن ولي الأمر
+      // 8. الـ Stateful Shell Route الخاص بابن ولي الأمر (3 خانات)
       //
-      // تنبيه: ما منستخدم state.extra هون إطلاقًا — لأنو navigationShell.goBranch()
-      // (المستخدمة بـ ChildShellPage._onTap) ما بتمرر extra عند التنقل بين
-      // الفروع، فـ "type 'Null' is not a subtype of 'ChildCard'" كانت
-      // بتصير أول ما تضغط عالتبويب التاني. بدالها، منقرا من
-      // SelectedChildHolder (singleton ثابت عبر الـ DI)، يلي بينحدّث مرة
-      // وحدة بس من guardian.dart وقت الضغط على كارد الابن، وبضل صحيح بغض
-      // النظر عن أي تنقل بين التبويبات.
+      // childId يأتي من المسار (query param) حتى يعتبره go_router تنقّلًا
+      // جديدًا بين ابن وآخر، فيُعاد بناء الـ shell بالكامل. الـ key مربوط
+      // بنفس childId لضمان الهدم وإعادة البناء.
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
+          final childId = state.uri.queryParameters['childId'];
           final child = di<SelectedChildHolder>().current;
           if (child == null) {
-            // احتياط أمان — ما المفروض يصير أبدًا لو التنقل صار من
-            // guardian.dart بس (يلي بيحدّث الـ holder قبل التنقل مباشرة).
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          return ChildShellPage(navigationShell: navigationShell, child: child);
+          return ChildShellPage(
+            key: ValueKey(childId ?? child.id.toString()),
+            navigationShell: navigationShell,
+            child: child,
+          );
         },
         branches: [
           // الفرع الأول: لوحة تحكم الابن (Dashboard)
@@ -213,8 +226,9 @@ class AppRouter {
                 builder: (context, state) {
                   final child = di<SelectedChildHolder>().current!;
                   return BlocProvider(
+                    key: ValueKey('dash_${child.id}'),
                     create: (_) => di<StudentCubit>()..loadFromChildCard(child),
-                    child:  StudentDashboard(studentId: child.id,),
+                    child: StudentDashboard(studentId: child.id),
                   );
                 },
               ),
@@ -247,19 +261,19 @@ class AppRouter {
                   );
                 },
               ),
-
             ],
           ),
-
+          // الفرع الثالث: برامج الابن (جدول) — مسار مستقل عن جدول الطالب
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: RouteName.schedule,
+                path: ParentRouteName.childSchedule,
                 builder: (context, state) {
                   final child = di<SelectedChildHolder>().current!;
                   return BlocProvider(
+                    key: ValueKey('sched_${child.id}'),
                     create: (_) => di<StudentCubit>()..loadFromChildCard(child),
-                    child:  SchedulesHubPage(),
+                    child: SchedulesHubPage(studentId: child.id),
                   );
                 },
               ),
@@ -274,19 +288,23 @@ class AppRouter {
       ),
       GoRoute(
         path: RouteName.announcements,
-        builder: (context, state) => AnnouncementsPage(studentId: state.extra as int?),
+        builder: (context, state) =>
+            AnnouncementsPage(studentId: state.extra as int?),
       ),
       GoRoute(
         path: RouteName.activities,
-        builder: (context, state) => ActivitiesPage(studentId: state.extra as int?),
+        builder: (context, state) =>
+            ActivitiesPage(studentId: state.extra as int?),
       ),
       GoRoute(
         path: RouteName.evaluations,
-        builder: (context, state) => EvaluationsPage(studentId: state.extra as int?),
+        builder: (context, state) =>
+            EvaluationsPage(studentId: state.extra as int?),
       ),
       GoRoute(
         path: RouteName.homeworks,
-        builder: (context, state) => HomeworksPage(studentId: state.extra as int?),
+        builder: (context, state) =>
+            HomeworksPage(studentId: state.extra as int?),
       ),
       GoRoute(
         path: RouteName.grades,
@@ -294,16 +312,21 @@ class AppRouter {
       ),
       GoRoute(
         path: RouteName.week_schedule,
-        builder: (context, state) => WeeklySchedulePage(studentId: state.extra as int?),
+        builder: (context, state) =>
+            WeeklySchedulePage(studentId: state.extra as int?),
       ),
 
-// ومع الـ routes المنفصلة:
-  GoRoute(
-  path: RouteName.studyMaterials,
-  builder: (context, state) => MaterialsPage(studentId: state.extra as int?),
-  ),
+      GoRoute(
+        path: RouteName.studyMaterials,
+        builder: (context, state) =>
+            MaterialsPage(studentId: state.extra as int?),
+      ),
+      GoRoute(
+        path: ParentRouteName.childComplaints,
+        builder: (context, state) => ComplaintsPage(studentId: state.extra as int),
+      ),
 
-      // 2. شاشة قائمة الكويزات للمادة (يمكن تمرير الـ subjectId و subjectName عبر extra كـ Map)
+      // شاشة قائمة الكويزات للمادة (subjectId و subjectName عبر extra كـ Map)
       GoRoute(
         path: StudentRouteName.practiceQuizzesList,
         builder: (context, state) {
@@ -317,7 +340,7 @@ class AppRouter {
           );
         },
       ),
-      // 3. شاشة حل الاختبار
+      // شاشة حل الاختبار
       GoRoute(
         path: StudentRouteName.practiceQuizView,
         builder: (context, state) {
@@ -327,7 +350,7 @@ class AppRouter {
             child: QuizViewScreen(
               quizTitle: args['quizTitle'],
               subjectId: args['subjectId'],
-              isReviewMode: args['isReviewMode'] ?? false, // تمرير القيمة هنا بأمان
+              isReviewMode: args['isReviewMode'] ?? false,
             ),
           );
         },

@@ -88,7 +88,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 SliverPersistentHeader(
                     pinned: true, delegate: SliverPinnedTitleDelegate()),
                 //[cite: 1, 4]
-                const DailyScheduleList(),
+                DailyScheduleList(studentId: widget.studentId),
                 //[cite: 1, 4]
               ],
             ),

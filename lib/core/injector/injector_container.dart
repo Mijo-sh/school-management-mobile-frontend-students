@@ -36,6 +36,13 @@ import '../../features/app_intro/domain/use_cases/complete_onboarding_use_case.d
 import '../../features/app_intro/domain/use_cases/delete_app_session_use_case.dart';
 import '../../features/app_intro/presentation/bloc/onboarding/onboarding_bloc.dart';
 import '../../features/auth/domain/use_cases/resend_otp_usecase.dart';
+import '../../features/complaint/data/data_sources/complaint_remote_data_source.dart';
+import '../../features/complaint/data/repositories/complaint_repository_impl.dart';
+import '../../features/complaint/domain/repositories/complaint_repository.dart';
+import '../../features/complaint/domain/use_cases/create_complaint_usecase.dart';
+import '../../features/complaint/domain/use_cases/get_complaint_options_usecase.dart';
+import '../../features/complaint/domain/use_cases/get_complaints_usecase.dart';
+import '../../features/complaint/presentation/manager/complaint_bloc.dart';
 import '../../features/evaluation/data/data_sources/local_datasource/evaluation_local_data_source.dart';
 import '../../features/evaluation/data/data_sources/remote_datasource/evaluation_remote_data_source.dart';
 import '../../features/evaluation/data/repositories/evaluation_repository_impl.dart';
@@ -44,6 +51,15 @@ import '../../features/evaluation/domain/use_cases/get_evaluations_usecase.dart'
 import '../../features/evaluation/domain/use_cases/get_unread_evaluations_count_usecase.dart';
 import '../../features/evaluation/domain/use_cases/mark_all_evaluations_as_read_usecase.dart';
 import '../../features/evaluation/presentation/manager/evaluations_cubit.dart';
+import '../../features/exam/data/data_sources/remote/exam_schedule_remote_data_source.dart';
+import '../../features/exam/data/repositories/exam_schedule_repository_impl.dart';
+import '../../features/exam/domain/entities/exam_schedule_entity.dart';
+import '../../features/exam/domain/repositories/exam_schedule_repository.dart';
+import '../../features/exam/domain/use_cases/get_exam_schedule_usecase.dart';
+import '../../features/exam/domain/use_cases/get_unread_exams_count_usecase.dart';
+import '../../features/exam/domain/use_cases/mark_all_exams_read_usecase.dart';
+import '../../features/exam/presentation/manager/exam_schedule_cubit.dart';
+import '../../features/exam/presentation/widgets/exam_unread_store.dart';
 import '../../features/helper/data/data_sources/remote/materials_remote_data_source.dart';
 import '../../features/helper/data/repositories/materials_repository_impl.dart';
 import '../../features/helper/domain/repositories/materials_repository.dart';
@@ -68,6 +84,7 @@ import '../../features/marks/domain/use_cases/get_grades_usecase.dart';
 import '../../features/marks/domain/use_cases/get_unread_grades_count_usecase.dart';
 import '../../features/marks/domain/use_cases/mark_all_grades_as_read_usecase.dart';
 import '../../features/marks/presentation/manager/grades_cubit.dart';
+import '../../features/profile/presentation/manager/tomorrow_schedule_cubit.dart';
 import '../../features/quiz/data/data_sources/local/practice_quizzes_local_data_source.dart';
 import '../../features/quiz/data/data_sources/remote/practice_quizzes_remote_data_source.dart';
 import '../../features/quiz/data/repositories/practice_quizzes_repository_impl.dart';
@@ -184,7 +201,7 @@ Future<void> init() async {
   di.registerLazySingleton<Dio>(() {
     final dioInstance = Dio(
       BaseOptions(
-        baseUrl: 'http://10.183.242.242:8000',
+        baseUrl: 'http://10.130.46.242:8000',
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ),
@@ -631,4 +648,51 @@ Future<void> init() async {
   di.registerLazySingleton(() => GetWeeklyScheduleUseCase(di()));
   di.registerLazySingleton(() => GetTomorrowScheduleUseCase(di()));
   di.registerFactory(() => ScheduleCubit(getWeeklyScheduleUseCase: di(), localDataSource: di()));
+  di.registerFactory(() => TomorrowScheduleCubit(getTomorrowScheduleUseCase: di()));
+
+  //************** Exam schedule *************
+  // ═══════ Exam Schedule Feature ═══════
+
+// 1) Data source (نفس أسلوب تسجيل data sources عندك)
+  di.registerLazySingleton<ExamScheduleRemoteDataSource>(
+        () => ExamScheduleRemoteDataSourceImpl(dio: di()),
+  );
+
+// 2) Repository
+  di.registerLazySingleton<ExamScheduleRepository>(
+        () => ExamScheduleRepositoryImpl(remoteDataSource: di()),
+  );
+
+// 3) Use cases (الثلاثة)
+  di.registerLazySingleton(() => GetExamScheduleUseCase(di()));
+  di.registerLazySingleton(() => GetUnreadExamsCountUseCase(di()));
+  di.registerLazySingleton(() => MarkAllExamsReadUseCase(di()));
+
+// 4) Store (Singleton — لازم يضل حيّ طول عمر التطبيق مثل QuizUnreadStore)
+  di.registerLazySingleton<ExamUnreadStore>(
+        () => ExamUnreadStore(
+      getUnreadCounts: di(),
+      markAllReadUseCase: di(),
+      pushNotificationRepository: di(),
+    ),
+  );
+
+// 5) Cubit (factoryParam: studentId + type)
+  di.registerFactoryParam<ExamScheduleCubit, int?, ExamType>(
+        (studentId, type) => ExamScheduleCubit(
+      getExamSchedule: di(),
+      studentId: studentId,
+      type: type,
+    ),
+  );
+  //********** complaint ****************
+  di.registerLazySingleton<ComplaintRemoteDataSource>(
+          () => ComplaintRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<ComplaintRepository>(
+          () => ComplaintRepositoryImpl(remoteDataSource: di()));
+  di.registerLazySingleton(() => GetComplaintOptionsUseCase(di()));
+  di.registerLazySingleton(() => GetComplaintsUseCase(di()));
+  di.registerLazySingleton(() => CreateComplaintUseCase(di()));
+  di.registerFactory(() => ComplaintBloc(
+      getComplaints: di(), getOptions: di(), createComplaint: di()));
 }

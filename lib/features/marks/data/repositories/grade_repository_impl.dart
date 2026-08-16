@@ -1,3 +1,5 @@
+// lib/features/grade/data/repositories/grade_repository_impl.dart
+
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/exceptions.dart';
@@ -49,8 +51,10 @@ class GradeRepositoryImpl implements GradeRepository {
       } else {
         return Left(ServerFailure(e.message));
       }
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 
@@ -61,8 +65,10 @@ class GradeRepositoryImpl implements GradeRepository {
       return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 
@@ -73,8 +79,10 @@ class GradeRepositoryImpl implements GradeRepository {
       return const Right(unit);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
-    } catch (e) {
-      return Left(UnExpectedFailure(e.toString()));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return  Left(UnExpectedFailure());
     }
   }
 }

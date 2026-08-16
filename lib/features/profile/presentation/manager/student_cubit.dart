@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/student_entity.dart';
 import '../../domain/use_cases/get_cached_user_usecase.dart';
@@ -41,9 +42,7 @@ class StudentCubit extends Cubit<StudentState> {
   /// GuardianCubit (ChildCard)، فما في داعي أي طلب سيرفر جديد —
   /// بس نبني StudentLoaded مباشرة من هالبيانات المتوفرة.
   void loadFromChildCard(ChildCard child) {
-    print(child.studentPhotoUrl);
-    print("=================================================================");
-
+    debugPrint('🟠 loadFromChildCard for = ${child.fullName} (${child.id})');
     emit(StudentLoaded(
       studentName: child.fullName,
       studentPhotoUrl:child.studentPhotoUrl,

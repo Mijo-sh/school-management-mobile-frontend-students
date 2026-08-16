@@ -11,12 +11,9 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/injector/injector_container.dart';
 import '../../../shared/presentation/widgets/curved_header_bar.dart';
-// 👇 عدّلي المسار حسب مكان GetCachedUserUsecase عندك
-import '../../../profile/domain/use_cases/get_cached_user_usecase.dart';
 import '../../domain/entities/schedule_entry.dart';
 import '../manager/schedule_cubit (1).dart';
 import '../manager/schedule_state (1).dart';
-
 
 Color colorForSubjectName(String subject) {
   const palette = [
@@ -39,7 +36,7 @@ String imageForSubject(String? subject) {
 }
 
 class WeeklySchedulePage extends StatelessWidget {
-  /// اختياري: الأب يمرّر id الابن. الطالب لا يمرّر شيء (نجيبه من الجلسة).
+  /// اختياري: الأب يمرّر id الابن. الطالب لا يمرّر شيء (null) — نجيبه من الجلسة.
   final int? studentId;
 
   const WeeklySchedulePage({super.key, this.studentId});
@@ -87,24 +84,11 @@ class _WeeklyScheduleViewState extends State<_WeeklyScheduleView> {
     _init();
   }
 
-  /// يحدّد id الطالب (من الأب أو من الجلسة) ثم يجلب البرنامج.
+  /// يجلب البرنامج. لو الأب مرّر studentId يُرسل، وإلا (طالب = null)
+  /// يُرسل null والباك يعرف الطالب من التوكن.
   Future<void> _init() async {
-    final id = await _resolveStudentId();
-    if (id == null) {
-      if (mounted) {
-        context.read<ScheduleCubit>().emitError('تعذّر تحديد الطالب');
-      }
-      return;
-    }
-    if (mounted) context.read<ScheduleCubit>().fetchWeekly(id);
-  }
-
-  /// لو الأب مرّر studentId نستخدمه، وإلا نجيب id الطالب من الجلسة.
-  Future<int?> _resolveStudentId() async {
-    if (widget.studentId != null) return widget.studentId;
-
-    final userResult = await di<GetCachedUserUsecase>()();
-    return userResult.fold((_) => null, (user) => user?.id);
+    // الطالب: null. الأب: id الابن. الاثنين صالحين — الـ remote يتعامل معهم.
+    context.read<ScheduleCubit>().fetchWeekly(widget.studentId);
   }
 
   Future<Uint8List> _captureBytes() async {
@@ -213,7 +197,7 @@ class _WeeklyScheduleViewState extends State<_WeeklyScheduleView> {
       ),
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
-        child: SafeArea( // 👈 تم إضافة SafeArea هنا ليصبح المحتوى آمناً ومحمياً بالكامل
+        child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             child: Column(
@@ -270,27 +254,37 @@ class _WeeklyScheduleViewState extends State<_WeeklyScheduleView> {
         ),
       ),
     );
-  }@override
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: cs.surface,
+      floatingActionButton: FloatingActionButton(
+        onPressed: _isProcessing ? null : _showExportOptions,
+        backgroundColor: cs.primary,
+        child: _isProcessing
+            ? SizedBox(
+            width: 22, height: 22,
+            child: CircularProgressIndicator(
+                strokeWidth: 2.2, color: cs.onPrimary))
+            : Icon(Icons.more_horiz_rounded, color: cs.onPrimary),
+      ),
       body: BlocListener<ScheduleCubit, ScheduleState>(
         listener: (context, state) {
-          // 1. إذا ظهرت رسالة تحذيرية (يعني يتم عرض الكاش القديم بسبب مشكلة)
+          // عرض كاش قديم بسبب مشكلة اتصال → تحذير
           if (state is ScheduleLoaded && state.warningMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.warningMessage!),
-                backgroundColor: cs.error, // لون تحذيري
+                backgroundColor: cs.error,
                 behavior: SnackBarBehavior.floating,
                 duration: const Duration(seconds: 4),
               ),
             );
           }
-
-          // 2. إذا حدث خطأ كامل (فشل الاتصال ولا يوجد كاش)
           if (state is ScheduleError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -315,7 +309,6 @@ class _WeeklyScheduleViewState extends State<_WeeklyScheduleView> {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  // إذا حدث خطأ كامل ولا يوجد كاش، نعرض رسالة خطأ مع زر إعادة محاولة
                   if (state is ScheduleError) {
                     return Center(
                       child: Padding(
@@ -323,7 +316,8 @@ class _WeeklyScheduleViewState extends State<_WeeklyScheduleView> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline_rounded, size: 48, color: cs.error),
+                            Icon(Icons.error_outline_rounded,
+                                size: 48, color: cs.error),
                             const SizedBox(height: 12),
                             Text(
                               state.message,
@@ -342,7 +336,6 @@ class _WeeklyScheduleViewState extends State<_WeeklyScheduleView> {
                     );
                   }
 
-                  // هنا سواء كانت البيانات جديدة أو من الكاش (ScheduleLoaded)، سيتم عرض الجدول طبيعياً
                   final schedule = (state as ScheduleLoaded).schedule;
                   return _buildContent(cs, schedule);
                 },
@@ -548,7 +541,7 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-/// شريط أيام ثابت — الثلاثاء في المنتصف، مع زيادة الظل الواضح والناعم حول الأطراف وباقي الأيام
+/// شريط أيام ثابت — الثلاثاء في المنتصف، مع ظل واضح وناعم حول الأطراف وباقي الأيام
 class _DayStrip extends StatelessWidget {
   final List<String> dayLabels;
   final int selectedIndex;
@@ -573,14 +566,12 @@ class _DayStrip extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: List.generate(dayLabels.length, (index) {
           final bool isSelected = index == selectedIndex;
-          final bool isTuesdayCenter = index == 2; // الثلاثاء في المنتصف
-          final bool isAdjacent = index == 1 || index == 3; // الاثنين والأربعاء
-          final bool isOuter = index == 0 || index == 4; // الأحد والخميس (الأطراف)
+          final bool isTuesdayCenter = index == 2;
+          final bool isAdjacent = index == 1 || index == 3;
+          final bool isOuter = index == 0 || index == 4;
 
-          // الارتفاع: الثلاثاء بارز (74)، الأطراف مخففة (58)، البقية (64)
           final double itemHeight = isTuesdayCenter ? 74.0 : (isOuter ? 58.0 : 64.0);
 
-          // تخصيص الظل (تمت زيادته ورفع وتيرته حول جميع العناصر)
           List<BoxShadow> customShadows;
           if (isSelected) {
             customShadows = [
@@ -625,7 +616,6 @@ class _DayStrip extends StatelessWidget {
               ),
             ];
           } else {
-            // الأحد والخميس: ظل أدق وأوضح
             customShadows = [
               BoxShadow(
                 color: Colors.black.withOpacity(0.12),
@@ -679,9 +669,12 @@ class _DayStrip extends StatelessWidget {
                               color: isSelected
                                   ? Colors.white
                                   : cs.onSurface.withOpacity(0.8),
-                              fontSize: isTuesdayCenter ? 13.5 : (isSelected ? 13 : 11.5),
-                              fontWeight:
-                              (isSelected || isTuesdayCenter) ? FontWeight.bold : FontWeight.w600,
+                              fontSize: isTuesdayCenter
+                                  ? 13.5
+                                  : (isSelected ? 13 : 11.5),
+                              fontWeight: (isSelected || isTuesdayCenter)
+                                  ? FontWeight.bold
+                                  : FontWeight.w600,
                             ),
                           ),
                         ),

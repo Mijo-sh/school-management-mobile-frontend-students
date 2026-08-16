@@ -26,6 +26,10 @@ class NotificationType {
 
   // مادة مساعدة
   static const String newStudyMaterial = 'new_study_material';
+
+  static const String newExamSchedule = 'new_exam_schedule';
+  static const String updateExamSchedule = 'update_exam_schedule';
+
 }
 
 /// يستخرج نوع الإشعار الموحّد من الـ data.
