@@ -65,4 +65,20 @@ class ComplaintRepositoryImpl implements ComplaintRepository {
       return  Left(UnExpectedFailure());
     }
   }
+  @override
+  Future<Either<Failure, Unit>> deleteComplaint(int complaintId) async {
+    try {
+      await remoteDataSource.deleteComplaint(complaintId);
+      return const Right(unit);
+    } on ServerException catch (e) {
+      print('⚠️ [REPOSITORY deleteComplaint] ServerException: ${e.message}');
+      return Left(ServerFailure(e.message));
+    } on UnexpectedException catch (e) {
+      print('⚠️ [REPOSITORY deleteComplaint] UnexpectedException: ${e.message}');
+      return Left(UnExpectedFailure(e.message));
+    } catch (e) {
+      print('❌ [REPOSITORY deleteComplaint] General Catch Error: $e');
+      return Left(UnExpectedFailure());
+    }
+  }
 }

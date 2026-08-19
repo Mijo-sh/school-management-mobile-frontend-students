@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../home/presentation/widgets/home_drawer_widget.dart';
+import '../../../shared/domain/entities/user_role.dart';
 import '../../domain/entities/child_card.dart';
 import '../manager/guardian_cubit.dart';
 import '../widgets/child_card_tile.dart';
@@ -16,11 +18,12 @@ class GuardianPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: cs.surface,
-        body: BlocBuilder<GuardianCubit, GuardianState>(
+    return Scaffold(
+        drawer: HomeDrawerWidget(
+          isDark: Theme.of(context).brightness == Brightness.dark,
+          role: UserRole.guardian,       // 👈 حسب الدور المناسب عندك
+          showChildOptions: false,     // 👈 ما في ابن محدد، فما نعرض خياراته
+        ),        body: BlocBuilder<GuardianCubit, GuardianState>(
           builder: (context, state) {
             if (state is GuardianLoading || state is GuardianInitial) {
               return const Center(child: CircularProgressIndicator());
@@ -38,7 +41,6 @@ class GuardianPage extends StatelessWidget {
             return _ChildrenList(children: loaded.children);
           },
         ),
-      ),
     );
   }
 }

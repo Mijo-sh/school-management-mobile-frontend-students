@@ -32,3 +32,10 @@ class CreateComplaintEvent extends ComplaintEvent {
   @override
   List<Object?> get props => [studentId, complaintTypeId];
 }
+/// حذف شكوى.
+class DeleteComplaintEvent extends ComplaintEvent {
+  final int complaintId;
+  const DeleteComplaintEvent(this.complaintId);
+  @override
+  List<Object?> get props => [complaintId];
+}

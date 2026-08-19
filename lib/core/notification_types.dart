@@ -29,7 +29,7 @@ class NotificationType {
 
   static const String newExamSchedule = 'new_exam_schedule';
   static const String updateExamSchedule = 'update_exam_schedule';
-
+  static const String payment = 'payment';
 }
 
 /// يستخرج نوع الإشعار الموحّد من الـ data.
@@ -38,7 +38,15 @@ String? resolveNotificationType(Map<String, dynamic> data) {
   final type = data['type']?.toString();
   if (type != null && type.isNotEmpty) return type;
 
-  if (data['alert_type'] != null) return NotificationType.alert;
+  final alertType = data['alert_type']?.toString();
+  if (alertType != null && alertType.isNotEmpty) {
+    // التنبيهات المالية: payment / payed → عدّاد paymentAlerts
+    if (alertType == 'payment' || alertType == 'payed') {
+      return NotificationType.payment;
+    }
+    // أي alert_type تاني (homework/absence/behavior/late/escape/general) → تنبيه عادي
+    return NotificationType.alert;
+  }
 
   return null;
 }

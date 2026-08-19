@@ -7,18 +7,22 @@ abstract class BaseRemoteDataSource {
     try {
       return await request();
     } on DioException catch (e) {
-      // 1. إذا كان الـ error داخل الـ DioException هو ServerException أساساً
       if (e.error is ServerException) {
         throw e.error as ServerException;
       }
 
-      // 2. حل احتياطي: إذا كان الـ Interceptor قد وضع الرسالة داخل الـ response أو الـ error
+      // 👇 فحص آمن: نفهرس message فقط لو data فعلاً Map
+      final data = e.response?.data;
+      final serverMessage =
+      (data is Map && data['message'] != null)
+          ? data['message'].toString()
+          : null;
+
       final errorMessage = e.error?.toString() ??
-          e.response?.data?['message'] ??
+          serverMessage ??
           'حدث خطأ في الخادم';
 
       throw ServerException(message: errorMessage);
-
     } on ServerException {
       rethrow;
     } catch (e) {

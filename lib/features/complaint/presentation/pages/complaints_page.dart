@@ -6,9 +6,10 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/injector/injector_container.dart';
 import '../../../shared/presentation/widgets/curved_header_bar.dart';
+import '../../../shared/presentation/widgets/date_divider_chip.dart'; // استيراد شريحة التاريخ المشتركة
 import '../../domain/entities/complaint_entities.dart';
 import '../manager/complaint_bloc.dart';
-import 'add_complaint_sheet.dart'; // تم تعديل الاستيراد ليوجه للصفحة الكاملة الجديدة
+import 'add_complaint_sheet.dart';
 
 // ══════════ ترجمة/ألوان الخطورة ══════════
 String severityLabel(String s) {
@@ -23,7 +24,11 @@ String severityLabel(String s) {
       return s;
   }
 }
-
+bool canDeleteComplaint(DateTime? createdAt) {
+  if (createdAt == null) return false;
+  final diff = DateTime.now().difference(createdAt).inDays;
+  return diff <= 5;
+}
 Color severityColor(String s, ColorScheme cs) {
   switch (s) {
     case 'high':
@@ -56,7 +61,6 @@ class _ComplaintsView extends StatelessWidget {
   final int studentId;
   const _ComplaintsView({required this.studentId});
 
-  // التعديل هنا: فتح صفحة إضافة الشكوى الكاملة بدلاً من الـ BottomSheet
   void _openAddPage(BuildContext context) {
     final bloc = context.read<ComplaintBloc>();
     Navigator.push(
@@ -68,6 +72,18 @@ class _ComplaintsView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // دوال تنسيق التواريخ تماماً مثل صفحة الأنشطة
+  String _dateLabel(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(target).inDays;
+
+    if (diff == 0) return 'اليوم';
+    if (diff == 1) return 'أمس';
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   @override
@@ -149,14 +165,46 @@ class _ComplaintsView extends StatelessWidget {
                   );
                 }
 
+                // فرز الشكاوى تصاعدياً (القديم أولاً)، وعند التساوي يتم الترتيب حسب الـ id
+                final sorted = [...state.complaints]
+                  ..sort((a, b) {
+                    final timeA = a.createdAt ?? DateTime(2000);
+                    final timeB = b.createdAt ?? DateTime(2000);
+                    final timeCompare = timeA.compareTo(timeB);
+                    if (timeCompare != 0) return timeCompare;
+                    return a.id.compareTo(b.id);
+                  });
+
+                final displayList = sorted;
+
                 return ListView.builder(
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(14, 16, 14, 90),
-                  itemCount: state.complaints.length,
+                  itemCount: displayList.length,
                   itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _ComplaintCard(complaint: state.complaints[index]),
+                    final complaint = displayList[index];
+                    final complaintDate = complaint.createdAt ?? DateTime(2000);
+
+                    // تحديد ما إذا كان يجب إظهار فاصل التاريخ أعلى العنصر (مقارنة بالعنصر السابق للترتيب التصاعدي)
+                    final showDateLabel = index == 0 ||
+                        _dateLabel(displayList[index - 1].createdAt ?? DateTime(2000)) !=
+                            _dateLabel(complaintDate);
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (showDateLabel)
+                          DateDividerChip(label: _dateLabel(complaintDate)),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _ComplaintCard(
+                            complaint: complaint,
+                            onDelete: canDeleteComplaint(complaint.createdAt)
+                                ? () => _confirmDelete(context, complaint)
+                                : null, // null = ما يظهر زر التلت نقط
+                          ),
+                        ),
+                      ],
                     );
                   },
                 );
@@ -166,7 +214,7 @@ class _ComplaintsView extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openAddPage(context), // استدعاء الدالة الصحيحة هنا
+        onPressed: () => _openAddPage(context),
         backgroundColor: cs.primary,
         icon: Icon(Icons.add_rounded, color: cs.onPrimary),
         label: Text(
@@ -181,7 +229,8 @@ class _ComplaintsView extends StatelessWidget {
 // ══════════ كارت الشكوى ══════════
 class _ComplaintCard extends StatelessWidget {
   final Complaint complaint;
-  const _ComplaintCard({required this.complaint});
+  final VoidCallback? onDelete; // 👈 null = ما يظهر الزر
+  const _ComplaintCard({required this.complaint, this.onDelete});
 
   String _formatDate(DateTime? d) {
     if (d == null) return '';
@@ -210,14 +259,15 @@ class _ComplaintCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // الصورة + التصنيف العام + شارة الخطورة في الأعلى
             Row(
               children: [
-                // صورة الـ Avatar بجانب العنوان العام
+                // 👇 زر التلت نقط باليسار (يظهر بس إذا onDelete مش null)
+
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: accentColor.withOpacity(0.1),
-                  backgroundImage: const AssetImage('assets/images/complaint.png'),
+                  backgroundImage:
+                  const AssetImage('assets/images/complaint.png'),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -247,11 +297,36 @@ class _ComplaintCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onDelete != null)
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.more_vert_rounded,
+                          size: 20, color: cs.onSurface.withOpacity(0.6)),
+                      onSelected: (value) {
+                        if (value == 'delete') onDelete!();
+                      },
+                      itemBuilder: (_) => [
+                        PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.delete_outline_rounded,
+                                  size: 18, color: Colors.red),
+                              const SizedBox(width: 8),
+                              Text('حذف',
+                                  style: TextStyle(color: cs.onSurface)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 10),
-
-            // عنوان الشكوى التفصيلي
             Text(
               complaint.type.title,
               textAlign: TextAlign.right,
@@ -262,12 +337,9 @@ class _ComplaintCard extends StatelessWidget {
                 height: 1.5,
               ),
             ),
-
             const SizedBox(height: 10),
             Divider(height: 1, color: accentColor.withOpacity(0.15)),
             const SizedBox(height: 8),
-
-            // التاريخ
             Row(
               children: [
                 Icon(Icons.access_time_rounded,
@@ -280,11 +352,38 @@ class _ComplaintCard extends StatelessWidget {
                     color: cs.onSurface.withOpacity(0.6),
                   ),
                 ),
+
               ],
             ),
           ],
         ),
       ),
     );
+  }
+}
+
+Future<void> _confirmDelete(BuildContext context, Complaint complaint) async {
+  final bloc = context.read<ComplaintBloc>();
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) =>  AlertDialog(
+        title: const Text('حذف الشكوى'),
+        content: const Text('هل أنت متأكد من حذف هذه الشكوى؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+  );
+
+  if (confirmed == true) {
+    bloc.add(DeleteComplaintEvent(complaint.id));
   }
 }

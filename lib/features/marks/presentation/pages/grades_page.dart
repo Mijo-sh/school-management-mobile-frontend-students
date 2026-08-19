@@ -73,9 +73,7 @@ class _GradesViewState extends State<_GradesView> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
+    return  Scaffold(
         backgroundColor: cs.surface,
         body: Column(
           children: [
@@ -177,7 +175,6 @@ class _GradesViewState extends State<_GradesView> {
             ),
           ],
         ),
-      ),
     );
   }
 

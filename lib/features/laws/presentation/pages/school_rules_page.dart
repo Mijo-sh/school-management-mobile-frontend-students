@@ -12,9 +12,7 @@ class SchoolRulesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: BlocProvider(
+    return  BlocProvider(
         create: (context) => di<SchoolRulesCubit>()..fetchSchoolRules(),
         child: Scaffold(
           backgroundColor: cs.surface,
@@ -135,7 +133,6 @@ class SchoolRulesPage extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }

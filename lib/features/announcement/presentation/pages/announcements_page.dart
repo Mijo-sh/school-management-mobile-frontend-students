@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/injector/injector_container.dart';
-import '../../../profile/presentation/pages/profile_page.dart';
-import '../../domain/entities/announcement_item.dart';
+//import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../shared/presentation/widgets/curved_header_bar.dart';
 import '../../../shared/presentation/widgets/date_divider_chip.dart';
 import '../../../shared/presentation/widgets/unified_bubble_tile.dart';
@@ -75,11 +74,9 @@ class _AnnouncementsViewState extends State<_AnnouncementsView> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    printAllSharedPreferences();
-    printAllSecureData();
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
+    //printAllSharedPreferences();
+    //printAllSecureData();
+    return  Scaffold(
         backgroundColor: cs.surface,
         body: Column(
           children: [
@@ -176,7 +173,6 @@ class _AnnouncementsViewState extends State<_AnnouncementsView> {
             ),
           ],
         ),
-      ),
     );
   }
 }

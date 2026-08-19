@@ -22,6 +22,7 @@ import '../../features/home/presentation/pages/child_shell_page.dart';
 import '../../features/home/presentation/pages/home_shell_page.dart';
 import '../../features/homework/presentation/pages/homeworks_page.dart';
 import '../../features/laws/presentation/pages/school_rules_page.dart';
+import '../../features/payment_alerts/presentation/pages/payment_alerts_page.dart';
 import '../../features/profile/presentation/pages/guardian.dart'; // صفحة ولي الأمر
 import '../../features/profile/presentation/pages/profile_details_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart'; // صفحة الـ Dashboard للطالب
@@ -31,8 +32,11 @@ import '../../features/quiz/presentation/manager/practice_quizzes_cubit.dart';
 import '../../features/quiz/presentation/pages/quiz_view_screen.dart';
 import '../../features/quiz/presentation/pages/quizzes_list_screen.dart';
 import '../../features/quiz/presentation/pages/subjects_screen.dart';
+import '../../features/report/presentation/pages/report_card_hub_page.dart';
+import '../../features/report/presentation/pages/report_card_page.dart';
 import '../../features/subject/presentation/manager/subjects_cubit.dart';
 import '../../features/tasks/presentation/pages/random_tasks_page.dart';
+import '../../features/top_student/presentation/pages/top_students_page.dart';
 import '../../features/weekly_schedule/presentation/pages/schedules_hup_page.dart';
 import '../../features/weekly_schedule/presentation/pages/weekly_schedule_page.dart';
 import '../injector/injector_container.dart';
@@ -287,6 +291,11 @@ class AppRouter {
         builder: (context, state) => AlertsPage(studentId: state.extra as int?),
       ),
       GoRoute(
+        path: ParentRouteName.paymentAlerts, // 👈 جديد
+        builder: (context, state) =>
+            PaymentAlertsPage(studentId: state.extra as int?),
+      ),
+      GoRoute(
         path: RouteName.announcements,
         builder: (context, state) =>
             AnnouncementsPage(studentId: state.extra as int?),
@@ -325,7 +334,16 @@ class AppRouter {
         path: ParentRouteName.childComplaints,
         builder: (context, state) => ComplaintsPage(studentId: state.extra as int),
       ),
-
+      GoRoute(
+        path: RouteName.reportCard,
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>?;
+          return ReportCardPage(
+            studentId: args?['studentId'] as int?,
+            reportCardId: args?['reportCardId'] as int?,
+          );
+        },
+      ),
       // شاشة قائمة الكويزات للمادة (subjectId و subjectName عبر extra كـ Map)
       GoRoute(
         path: StudentRouteName.practiceQuizzesList,
@@ -352,6 +370,27 @@ class AppRouter {
               subjectId: args['subjectId'],
               isReviewMode: args['isReviewMode'] ?? false,
             ),
+          );
+        },
+      ),
+      GoRoute(
+        path: RouteName.reportCardHub,
+        builder: (context, state) {
+          // extra == null → الطالب / Map فيها studentId → ولي الأمر
+          final args = state.extra as Map<String, dynamic>?;
+          return ReportCardHubPage(
+            studentId: args?['studentId'] as int?,
+          );
+        },
+      ),
+      GoRoute(
+        path: RouteName.topStudents,
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>? ?? {};
+          return TopStudentsPage(
+            studentId: args['studentId'] as int?,
+            firstTermId: args['firstTermId'] as int? ?? 1,
+            secondTermId: args['secondTermId'] as int? ?? 2,
           );
         },
       ),

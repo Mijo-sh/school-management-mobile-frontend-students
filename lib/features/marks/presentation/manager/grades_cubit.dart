@@ -42,7 +42,7 @@ class GradesCubit extends FeedCubit<GradeItem> {
   void clearBadge() => di<UnreadCountsStore>().clearGrades();
 
   @override
-  Set<String> get notificationTypes => {NotificationType.newMark,NotificationType.updateMark};
+  Set<String> get notificationTypes => {NotificationType.newMark};
 
 
 }

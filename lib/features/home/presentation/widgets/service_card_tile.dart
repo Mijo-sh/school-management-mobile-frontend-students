@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:school_management_mobile_frontend_students/features/home/presentation/widgets/unread_badge.dart';
+import '../../../../core/injector/injector_container.dart';
 import '../../../../core/routing/route_name.dart';
+import '../../../../core/routing/selected_child_holder.dart';
 import '../pages/services_page.dart';
 
 class ServiceCardTile extends StatefulWidget {
@@ -23,9 +25,18 @@ class ServiceCardTile extends StatefulWidget {
 class _ServiceCardTileState extends State<ServiceCardTile> {
   int _badgeRefreshTick = 0;
 
+  /// معرّف الطالب الحيّ:
+  /// - بوضع الأب: يُقرأ من SelectedChildHolder (متحدّث دائمًا عند تبديل الابن).
+  /// - بوضع الطالب: الـ holder فارغ فنرجع widget.studentId (عادةً null).
+  ///
+  /// السبب: ServicesPage داخل StatefulShellRoute.indexedStack، فـ widget.studentId
+  /// يتجمّد على الابن الأول ولا يتحدّث. لذلك نقرأ من الـ holder وقت الضغط.
+  int? get _liveStudentId =>
+      di<SelectedChildHolder>().current?.id ?? widget.studentId;
+
   Future<void> _onTap(BuildContext context) async {
     final card = widget.card;
-    final studentId = widget.studentId;
+    final studentId = _liveStudentId; // 👈 القيمة الحيّة، مش العالقة
 
     if (card.title == 'Alerts') {
       await context.push(RouteName.alerts, extra: studentId);
@@ -35,26 +46,41 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
       await context.push(RouteName.activities, extra: studentId);
     } else if (card.title == 'Evaluations') {
       await context.push(RouteName.evaluations, extra: studentId);
-    } else if (card.title == 'Homeworks') {          // 👈 السطرين الجداد
+    } else if (card.title == 'Homeworks') {
       await context.push(RouteName.homeworks, extra: studentId);
-    } else if (card.title == 'Grades') { // 👈 السطرين الجداد
+    } else if (card.title == 'Grades') {
       await context.push(RouteName.grades, extra: studentId);
+    } else if (card.title == 'Certification') {
+      await context.push(
+        RouteName.reportCardHub,
+        extra: studentId == null ? null : {'studentId': studentId},
+      );
+    } else if (card.title == 'File Helper') {
+      await context.push(RouteName.studyMaterials, extra: studentId);
+    } else if (card.title == 'Financial') { // 👈 جديد
+      await context.push(ParentRouteName.paymentAlerts, extra: studentId);
+    } else if (card.title == 'Top Students') {
+      await context.push(
+        RouteName.topStudents,
+        extra: {
+          'studentId': studentId, // ممكن يكون null للطالب، وهاد صح
+          'firstTermId': 1,
+          'secondTermId': 2,
+        },
+      );
     }
-    else if (card.title == 'File Helper') {          // 👈 السطرين الجداد
-      await context.push(RouteName.studyMaterials);
-    }else {
+    else {
       return;
     }
 
     if (mounted) setState(() => _badgeRefreshTick++);
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final card = widget.card;
-    final studentId = widget.studentId;
+    // للبادج: نستخدم القيمة الحيّة كذلك حتى يعرض عدّاد الابن الصحيح.
+    final studentId = _liveStudentId;
     final cs = Theme.of(context).colorScheme;
 
     final tile = InkWell(
@@ -95,7 +121,7 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
               child: Text(
                 card.title,
-                style:  TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: cs.onSurface,
@@ -110,7 +136,16 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
       ),
     );
 
-    const badgeCards = {'Alerts', 'Announcements', 'Activities', 'Evaluations','Homeworks','Grades','File Helper'};
+    const badgeCards = {
+      'Alerts',
+      'Announcements',
+      'Activities',
+      'Evaluations',
+      'Homeworks',
+      'Grades',
+      'File Helper',
+      'Financial'
+    };
     if (!badgeCards.contains(card.title)) return tile;
 
     return Stack(

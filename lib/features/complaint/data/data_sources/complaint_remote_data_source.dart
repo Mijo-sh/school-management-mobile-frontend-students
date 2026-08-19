@@ -10,6 +10,8 @@ abstract class ComplaintRemoteDataSource {
   Future<List<ComplaintCategoryModel>> getOptions();
   Future<List<ComplaintModel>> getComplaints(int studentId);
   Future<void> createComplaint(ComplaintToCreate complaint);
+  Future<void> deleteComplaint(int complaintId); // 👈 جديد
+
 }
 
 class ComplaintRemoteDataSourceImpl extends BaseRemoteDataSource
@@ -51,6 +53,12 @@ class ComplaintRemoteDataSourceImpl extends BaseRemoteDataSource
           'complaint_type_id': complaint.complaintTypeId,
         },
       );
+    });
+  }
+  @override
+  Future<void> deleteComplaint(int complaintId) async {
+    return execute(() async {
+      await dio.delete('/api/user/complaint/delete/$complaintId');
     });
   }
 }

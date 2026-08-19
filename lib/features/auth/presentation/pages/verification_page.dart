@@ -122,9 +122,7 @@ class _VerificationPageState extends State<VerificationPage>
           final isLoading = state is AuthLoading;
           final code = _codeController.text;
 
-          return Directionality(
-            textDirection: TextDirection.rtl,
-            child: AuthBackground(
+          return  AuthBackground(
               child: AuthScaffoldBody(
                 fade: _fade,
                 slide: _slide,
@@ -200,7 +198,6 @@ class _VerificationPageState extends State<VerificationPage>
                   const Spacer(flex: 2),
                 ],
               ),
-            ),
           );
         },
       ),
@@ -227,9 +224,7 @@ class _OtpField extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: Stack(
+    return  Stack(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -293,7 +288,6 @@ class _OtpField extends StatelessWidget {
             ),
           ),
         ],
-      ),
     );
   }
 }

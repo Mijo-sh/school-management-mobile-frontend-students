@@ -13,15 +13,19 @@ class ScheduleRemoteDataSourceImpl extends BaseRemoteDataSource
   ScheduleRemoteDataSourceImpl({required this.dio});
 
   Map<String, List<ScheduleEntryModel>> _parse(Response response) {
-    final data = response.data['data'] as Map<String, dynamic>;
+    final body = response.data;
+    // حماية: لو مو Map أو ما في data → رجّع فاضي بدل crash
+    if (body is! Map || body['data'] is! Map) {
+      return {};
+    }
+    final data = body['data'] as Map<String, dynamic>;
     return data.map((day, entriesJson) {
-      final entries = (entriesJson as List)
+      final entries = (entriesJson is List ? entriesJson : const [])
           .map((e) => ScheduleEntryModel.fromJson(e as Map<String, dynamic>))
           .toList();
       return MapEntry(day, entries);
     });
   }
-
   // studentId يُرسل كـ query param فقط عند وجوده (ولي الأمر)، والطالب يتركه null.
   Map<String, dynamic>? _params(int? studentId) =>
       studentId != null ? {'student_id': studentId} : null;

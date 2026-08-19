@@ -40,9 +40,18 @@ import '../../features/complaint/data/data_sources/complaint_remote_data_source.
 import '../../features/complaint/data/repositories/complaint_repository_impl.dart';
 import '../../features/complaint/domain/repositories/complaint_repository.dart';
 import '../../features/complaint/domain/use_cases/create_complaint_usecase.dart';
+import '../../features/complaint/domain/use_cases/delete_complaint_usecase.dart';
 import '../../features/complaint/domain/use_cases/get_complaint_options_usecase.dart';
 import '../../features/complaint/domain/use_cases/get_complaints_usecase.dart';
 import '../../features/complaint/presentation/manager/complaint_bloc.dart';
+import '../../features/consulre/data/data_sources/remote/appointment_remote_data_source.dart';
+import '../../features/consulre/data/repositories/appointment_repository_impl.dart';
+import '../../features/consulre/domain/repositories/appointment_repository.dart';
+import '../../features/consulre/domain/use_cases/book_appointment_use_case.dart';
+import '../../features/consulre/domain/use_cases/cancel_appointment_use_case.dart';
+import '../../features/consulre/domain/use_cases/get_available_slots_use_case.dart';
+import '../../features/consulre/domain/use_cases/get_my_appointments_use_case.dart';
+import '../../features/consulre/presentation/manager/appointment_bloc.dart';
 import '../../features/evaluation/data/data_sources/local_datasource/evaluation_local_data_source.dart';
 import '../../features/evaluation/data/data_sources/remote_datasource/evaluation_remote_data_source.dart';
 import '../../features/evaluation/data/repositories/evaluation_repository_impl.dart';
@@ -84,6 +93,19 @@ import '../../features/marks/domain/use_cases/get_grades_usecase.dart';
 import '../../features/marks/domain/use_cases/get_unread_grades_count_usecase.dart';
 import '../../features/marks/domain/use_cases/mark_all_grades_as_read_usecase.dart';
 import '../../features/marks/presentation/manager/grades_cubit.dart';
+import '../../features/payment_alerts/data/data_sources/local/payment_alert_local_data_source.dart';
+import '../../features/payment_alerts/data/data_sources/remote/finance_report_remote_data_source.dart';
+import '../../features/payment_alerts/data/data_sources/remote/payment_alert_remote_data_source.dart';
+import '../../features/payment_alerts/data/repositories/finance_report_repository_impl.dart';
+import '../../features/payment_alerts/data/repositories/payment_alert_repository_impl.dart';
+import '../../features/payment_alerts/domain/repositories/finance_report_repository.dart';
+import '../../features/payment_alerts/domain/repositories/payment_alert_repository.dart';
+import '../../features/payment_alerts/domain/use_cases/ get_payment_alerts_usecase.dart';
+import '../../features/payment_alerts/domain/use_cases/get_finance_report_usecase.dart';
+import '../../features/payment_alerts/domain/use_cases/get_unread_payment_alerts_count_usecase.dart';
+import '../../features/payment_alerts/domain/use_cases/mark_payment_alert_as_read_usecase.dart';
+import '../../features/payment_alerts/presentation/manager/finance_report_cubit.dart';
+import '../../features/payment_alerts/presentation/manager/payment_alerts_cubit.dart';
 import '../../features/profile/presentation/manager/tomorrow_schedule_cubit.dart';
 import '../../features/quiz/data/data_sources/local/practice_quizzes_local_data_source.dart';
 import '../../features/quiz/data/data_sources/remote/practice_quizzes_remote_data_source.dart';
@@ -97,11 +119,22 @@ import '../../features/quiz/domain/use_cases/mark_as_read_quiz_usecase.dart';
 import '../../features/quiz/domain/use_cases/submit_quiz_answers_usecase.dart';
 import '../../features/quiz/presentation/manager/practice_quizzes_cubit.dart';
 import '../../features/quiz/presentation/widgets/quiz_unread_store.dart';
+import '../../features/report/data/data_sources/local/report_card_local_data_source.dart';
+import '../../features/report/data/data_sources/remote/report_card_remote_data_source.dart';
+import '../../features/report/data/repositories/report_card_repository_impl.dart';
+import '../../features/report/domain/repositories/report_card_repository.dart';
+import '../../features/report/domain/use_cases/get_report_card_usecase.dart';
+import '../../features/report/presentation/manager/report_card_cubit.dart';
 import '../../features/subject/data/repositories/subjects_repository_impl.dart';
 import '../../features/subject/domain/repositories/get_practice_subjects_usecase.dart';
 import '../../features/subject/domain/repositories/subjects_repository.dart';
 import '../../features/tasks/data/data_sources/random_tasks_store.dart';
 import '../../features/tasks/data/data_sources/task_reminder_service.dart';
+import '../../features/top_student/data/data_sources/remote/top_students_remote_data_source.dart';
+import '../../features/top_student/data/repositories/top_students_repository_impl.dart';
+import '../../features/top_student/domain/repositories/top_students_repository.dart';
+import '../../features/top_student/domain/use_cases/get_top_students_usecase.dart';
+import '../../features/top_student/presentation/manager/top_students_cubit.dart';
 import '../../features/weekly_schedule/data/data_sources/local/schedule_local_data_source .dart';
 import '../../features/weekly_schedule/data/data_sources/remote/schedule_remote_data_source.dart';
 import '../../features/weekly_schedule/data/repositories/schedule_repository_impl.dart';
@@ -373,6 +406,7 @@ Future<void> init() async {
         getGradesCount: di(),
         getHomeworksCount: di(),
         getMaterialsCount: di(),
+        getPaymentAlertsCount: di(),
       ));
 
   // ********** Alerts **********
@@ -693,6 +727,135 @@ Future<void> init() async {
   di.registerLazySingleton(() => GetComplaintOptionsUseCase(di()));
   di.registerLazySingleton(() => GetComplaintsUseCase(di()));
   di.registerLazySingleton(() => CreateComplaintUseCase(di()));
+  di.registerLazySingleton(() => DeleteComplaintUseCase(di()));
+
   di.registerFactory(() => ComplaintBloc(
-      getComplaints: di(), getOptions: di(), createComplaint: di()));
+      getComplaints: di(), getOptions: di(), createComplaint: di(), deleteComplaint: di()));
+// ===================== Report Card (الجلاء) =====================
+
+// Cubit — param1 = studentId (int?) ، param2 = reportCardId (int?)
+  di.registerFactoryParam<ReportCardCubit, int?, int?>(
+        (studentId, reportCardId) => ReportCardCubit(
+      getReportCardUseCase: di(),
+      studentId: studentId,
+      reportCardId: reportCardId,
+    ),
+  );
+
+// UseCase
+  di.registerLazySingleton(
+        () => GetReportCardUseCase(repository: di()),
+  );
+
+// Repository
+  di.registerLazySingleton<ReportCardRepository>(
+        () => ReportCardRepositoryImpl(
+      remoteDataSource: di(),
+      localDataSource: di(),
+    ),
+  );
+
+// Remote DataSource
+  di.registerLazySingleton<ReportCardRemoteDataSource>(
+        () => ReportCardRemoteDataSourceImpl(dio: di()),
+  );
+
+// Local DataSource
+  di.registerLazySingleton<ReportCardLocalDataSource>(
+        () => ReportCardLocalDataSourceImpl(sharedPreferences: di()),
+  );
+  // ===== Payment Alerts =====
+
+  // Data sources
+  di.registerLazySingleton<PaymentAlertRemoteDataSource>(
+        () => PaymentAlertRemoteDataSourceImpl(dio: di()),
+  );
+  di.registerLazySingleton<PaymentAlertLocalDataSource>(
+        () => PaymentAlertLocalDataSourceImpl(sharedPreferences: di()),
+  );
+
+  // Repository
+  di.registerLazySingleton<PaymentAlertRepository>(
+        () => PaymentAlertRepositoryImpl(
+      remoteDataSource: di(),
+      localDataSource: di(),
+    ),
+  );
+
+  // Use cases
+  di.registerLazySingleton(() => GetPaymentAlertsUseCase(repository: di()));
+  di.registerLazySingleton(
+        () => GetUnreadPaymentAlertsCountUseCase(repository: di()),
+  );
+  di.registerLazySingleton(
+        () => MarkPaymentAlertAsReadUseCase(repository: di()),
+  );
+
+  // Cubit — factoryParam مشان param1: studentId (متل AlertsCubit)
+  di.registerFactoryParam<PaymentAlertsCubit, int?, void>(
+        (studentId, _) => PaymentAlertsCubit(
+      getPaymentAlertsUseCase: di(),
+      markPaymentAlertAsReadUseCase: di(),
+      studentId: studentId,
+    ),
+  );
+  // Finance report
+  di.registerLazySingleton<FinanceReportRemoteDataSource>(
+          () => FinanceReportRemoteDataSourceImpl(dio: di()));
+  di.registerLazySingleton<FinanceReportRepository>(
+          () => FinanceReportRepositoryImpl(remoteDataSource: di()));
+  di.registerLazySingleton(() => GetFinanceReportUseCase(repository: di()));
+  di.registerFactoryParam<FinanceReportCubit, int?, void>(
+          (studentId, _) => FinanceReportCubit(
+        getFinanceReportUseCase: di(),
+        studentId: studentId!, // للأب دايمًا موجود
+      ));
+//*********** consulre *******************
+// Bloc
+  di.registerFactory(() => AppointmentBloc(
+    getAvailableSlots: di(),
+    getMyAppointments: di(),
+    bookAppointment: di(),
+    cancelAppointment: di(),
+  ));
+
+// Use cases
+  di.registerLazySingleton(() => GetAvailableSlotsUseCase(repository: di()));
+  di.registerLazySingleton(() => GetMyAppointmentsUseCase(repository: di()));
+  di.registerLazySingleton(() => BookAppointmentUseCase(repository: di()));
+  di.registerLazySingleton(() => CancelAppointmentUseCase(repository: di()));
+
+// Repository
+  di.registerLazySingleton<AppointmentRepository>(
+        () => AppointmentRepositoryImpl(remoteDataSource: di()),
+  );
+
+// Data source
+  di.registerLazySingleton<AppointmentRemoteDataSource>(
+        () => AppointmentRemoteDataSourceImpl(dio: di()),
+  );
+  // ===================== Top Students Feature =====================
+
+// 1) Remote Data Source
+  di.registerLazySingleton<TopStudentsRemoteDataSource>(
+        () => TopStudentsRemoteDataSourceImpl(dio: di()),
+  );
+
+// 2) Repository
+  di.registerLazySingleton<TopStudentsRepository>(
+        () => TopStudentsRepositoryImpl(remoteDataSource: di()),
+  );
+
+// 3) Use Case
+  di.registerLazySingleton(
+        () => GetTopStudentsUseCase(repository: di()),
+  );
+
+// 4) Cubit — factory param لأنه بياخد studentId وقت الإنشاء
+  di.registerFactoryParam<TopStudentsCubit, int?, void>(
+        (studentId, _) => TopStudentsCubit(
+      getTopStudentsUseCase: di(),
+      studentId: studentId,
+    ),
+  );
 }

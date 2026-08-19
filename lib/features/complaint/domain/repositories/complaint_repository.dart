@@ -9,4 +9,6 @@ abstract class ComplaintRepository {
   Future<Either<Failure, List<ComplaintCategory>>> getOptions();
   Future<Either<Failure, List<Complaint>>> getComplaints(int studentId);
   Future<Either<Failure, Unit>> createComplaint(ComplaintToCreate complaint);
+  Future<Either<Failure, Unit>> deleteComplaint(int complaintId); // 👈 جديد
+
 }

@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/complaint_entities.dart';
+import '../../domain/use_cases/delete_complaint_usecase.dart';
 import '../../domain/use_cases/get_complaint_options_usecase.dart';
 import '../../domain/use_cases/get_complaints_usecase.dart';
 import '../../domain/use_cases/create_complaint_usecase.dart';
@@ -16,6 +17,7 @@ class ComplaintBloc extends Bloc<ComplaintEvent, ComplaintState> {
   final GetComplaintsUseCase getComplaints;
   final GetComplaintOptionsUseCase getOptions;
   final CreateComplaintUseCase createComplaint;
+  final DeleteComplaintUseCase deleteComplaint; // 👈 جديد
 
   // نحتفظ بآخر studentId لإعادة جلب القائمة بعد الإنشاء.
   int? _lastStudentId;
@@ -24,10 +26,14 @@ class ComplaintBloc extends Bloc<ComplaintEvent, ComplaintState> {
     required this.getComplaints,
     required this.getOptions,
     required this.createComplaint,
+    required this.deleteComplaint, // 👈 جديد
+
   }) : super(const ComplaintState()) {
     on<GetComplaintsEvent>(_onGetComplaints);
     on<GetComplaintOptionsEvent>(_onGetOptions);
     on<CreateComplaintEvent>(_onCreateComplaint);
+    on<DeleteComplaintEvent>(_onDeleteComplaint); // 👈 جديد
+
   }
 
   Future<void> _onGetComplaints(
@@ -117,5 +123,31 @@ class ComplaintBloc extends Bloc<ComplaintEvent, ComplaintState> {
       return failure.message.isNotEmpty ? failure.message : 'حدث خطأ غير متوقع';
     }
     return 'حدث خطأ غير متوقع، حاول مرة أخرى';
+  }
+  Future<void> _onDeleteComplaint(
+      DeleteComplaintEvent event,
+      Emitter<ComplaintState> emit,
+      ) async {
+    emit(state.copyWith(
+      submissionStatus: ComplaintStatus.loading,
+      clearMessage: true,
+    ));
+    final result = await deleteComplaint(event.complaintId);
+    await result.fold(
+          (failure) async {
+        emit(state.copyWith(
+          submissionStatus: ComplaintStatus.failure,
+          message: _msg(failure),
+        ));
+      },
+          (_) async {
+        emit(state.copyWith(
+          submissionStatus: ComplaintStatus.success,
+          message: 'تم حذف الشكوى',
+        ));
+        final sid = _lastStudentId;
+        if (sid != null) add(GetComplaintsEvent(sid));
+      },
+    );
   }
 }

@@ -31,8 +31,11 @@ class UnreadBadge extends StatelessWidget {
         return store.grades;
       case 'File Helper':
         return store.materials;
+      case 'Financial': // 👈 جديد
+        return store.paymentAlerts;
       default: // Alerts
         return store.alerts;
+
     }
   }
 

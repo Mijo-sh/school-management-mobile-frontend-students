@@ -85,9 +85,7 @@ class _LoginPageState extends State<LoginPage>
           final isLoading = state is AuthLoading;
           final valid = _phoneController.text.trim().length == _localDigits;
 
-          return Directionality(
-            textDirection: TextDirection.rtl,
-            child: AuthBackground(
+          return  AuthBackground(
               child: AuthScaffoldBody(
                 fade: _fade,
                 slide: _slide,
@@ -129,7 +127,6 @@ class _LoginPageState extends State<LoginPage>
                   const Spacer(flex: 2),
                 ],
               ),
-            ),
           );
         },
       ),
@@ -145,9 +142,7 @@ class _PhoneField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: TextField(
+    return TextField(
         controller: controller,
         keyboardType: TextInputType.phone,
         maxLength: 9,
@@ -179,7 +174,6 @@ class _PhoneField extends StatelessWidget {
           prefixIconConstraints:
           const BoxConstraints(minWidth: 0, minHeight: 0),
         ),
-      ),
     );
   }
 }

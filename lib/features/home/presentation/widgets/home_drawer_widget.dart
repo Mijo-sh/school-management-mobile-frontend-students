@@ -13,17 +13,17 @@ import '../../../shared/domain/entities/user_role.dart';
 import '../../../theme/domain/enums/theme_type.dart';
 import '../../../theme/presentation/bloc/theme_bloc.dart';
 import 'drawer_log_out_dialog_widget.dart';
-
 class HomeDrawerWidget extends StatelessWidget {
   final bool isDark;
   final UserRole role;
+  final bool showChildOptions; // 👈 جديد
 
   const HomeDrawerWidget({
     super.key,
     required this.isDark,
-    required this.role
+    required this.role,
+    this.showChildOptions = true, // افتراضي
   });
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -154,14 +154,9 @@ class HomeDrawerWidget extends StatelessWidget {
               context.read<LanguageBloc>().add(ToggleLanguageEvent());
             }),
 
-            // 4. خيار عرض الإجازات والخطط
-            _buildListTile(context, Icons.calendar_month, "drawer_show_holidays".tr(context), () {
-              context.pop();
-              context.push(RouteName.showHolidays);
-            }),
 
             // 5. خيار حول المدرسة
-            _buildListTile(context, Icons.info, "drawer_about_school".tr(context), () {
+            _buildListTile(context, Icons.info, "drawer_Profile".tr(context), () {
               context.pop();
               context.push(RouteName.showprofile);
             }),
@@ -178,7 +173,7 @@ class HomeDrawerWidget extends StatelessWidget {
             }),
 
             // الشرط الصحيح داخل قائمة الـ children
-            if (child != null)
+            if (showChildOptions && child != null)
               _buildListTile(context, Icons.report_problem, "complaint_name".tr(context), () {
                 context.pop();
                 context.push(ParentRouteName.childComplaints, extra: child.id);

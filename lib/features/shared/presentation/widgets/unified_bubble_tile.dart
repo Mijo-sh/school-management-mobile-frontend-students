@@ -12,7 +12,7 @@ class UnifiedBubbleTile extends StatelessWidget {
   /// أزرار/محتوى اختياري يظهر داخل الفقاعة بعرض كامل (تحت الـ chips).
   /// الأنشطة وغيرها ما بتمرّره، فما بيتأثروا.
   final Widget? bottomActions;
-
+  final Widget? trailing;
   const UnifiedBubbleTile({
     super.key,
     required this.title,
@@ -22,6 +22,8 @@ class UnifiedBubbleTile extends StatelessWidget {
     required this.leadingIcon,
     this.detailsChips = const [],
     this.bottomActions,
+    this.trailing, // 👈 جديد
+
   });
 
   @override
@@ -48,11 +50,10 @@ class UnifiedBubbleTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 leadingIcon,
                 const SizedBox(width: 8),
-                Flexible(
+                Expanded(
                   child: Text(
                     title,
                     textAlign: TextAlign.right,
@@ -63,6 +64,10 @@ class UnifiedBubbleTile extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing!,
+                ],
                 if (isUnread) ...[
                   const SizedBox(width: 6),
                   Container(

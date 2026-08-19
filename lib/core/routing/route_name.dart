@@ -17,13 +17,14 @@ class RouteName {
   static const String homeworks = '/homeworks';
   static const String randomTasks = '/random-tasks';
   static const String grades = '/grades';
-  static const String studyMaterials = '/study-materials';   // 👈 جديد
-  static const String schedule = '/schedule';   // 👈 جديد
-  static const String week_schedule = '/week_schedule';   // 👈 جديد
+  static const String studyMaterials = '/study-materials';
+  static const String schedule = '/schedule';
+  static const String week_schedule = '/week_schedule';
   static const String quizSchedule='/quiz_schedule';
   static const String examsSchedule='/exam_schedule';
-
-
+  static const String reportCard = '/report-card';
+  static const String reportCardHub = '/report-card-hub';
+  static const String topStudents = '/top-students';
 }
 
 class StudentRouteName {
@@ -41,4 +42,5 @@ class ParentRouteName {
   static const String childServices = '/parent/child-services';
   static const String childSchedule = '/parent/child-schedule';
   static const String childComplaints = '/parent/child-complaints';
+  static const String paymentAlerts = '/PaymentAlertsPage';
 }
