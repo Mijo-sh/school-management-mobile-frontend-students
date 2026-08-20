@@ -8,6 +8,7 @@ abstract class AppSessionLocalDataSource {
   Future<Unit> cacheSession(AppSessionModel sessionModel);
   Future<Unit> clearSession();
   Future<Unit> completeOnboarding();
+  Future<Unit> clearAuthData();
 }
 
 class AppSessionLocalDataSourceImpl implements AppSessionLocalDataSource {
@@ -37,14 +38,32 @@ class AppSessionLocalDataSourceImpl implements AppSessionLocalDataSource {
     await storage.delete(key: CacheKeys.appSession);
     return unit;
   }
-
   @override
   Future<Unit> completeOnboarding() async {
     final session = await getCachedSession();
     final updatedSession = AppSessionModel.fromEntity(
-      session!.copyWith(isOnboardingCompleted: true)
+        session!.copyWith(isOnboardingCompleted: true)  
     );
     await cacheSession(updatedSession);
+    return unit;
+  }
+  @override
+  Future<Unit> clearAuthData() async {
+    final session = await getCachedSession();
+
+    // لو ما في جلسة، ما في شي نمسحه
+    if (session == null) return unit;
+
+    // نبني AppSessionModel جديد يدوياً: نُبقي onboarding، ونُفرّغ حقول auth
+    // (ما نستخدم copyWith لأنها لا تقبل تعيين null)
+    final cleared = AppSessionModel(
+      isOnboardingCompleted: session.isOnboardingCompleted, // ← نحافظ عليها
+      token: null,
+      tokenExpiresAt: null,
+      role: null,
+    );
+
+    await cacheSession(cleared);
     return unit;
   }
 }

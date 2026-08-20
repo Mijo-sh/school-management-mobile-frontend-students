@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
-
 import '../../../../core/injector/injector_container.dart';
 import '../../../../core/unread_counts_store.dart';
 
-/// بادج العدد غير المقروء — هلق بتقرا مباشرة من [UnreadCountsStore]
-/// (Singleton محمّل مسبقًا بمستوى الـ Shell)، بدل ما تعمل طلب سيرفر
-/// مستقل لحالها كل مرة تُبنى. صفر تأخير، وتحديث تلقائي فوري لما
-/// الـ Store يتغيّر (تحميل أولي، إشعار جديد، أو تصفير قراءة).
 class UnreadBadge extends StatelessWidget {
   final int? studentId;
   final String cardTitle;
@@ -31,8 +26,10 @@ class UnreadBadge extends StatelessWidget {
         return store.grades;
       case 'File Helper':
         return store.materials;
-      case 'Financial': // 👈 جديد
+      case 'Financial':
         return store.paymentAlerts;
+      case 'Certification':
+        return store.reportCard;
       default: // Alerts
         return store.alerts;
 

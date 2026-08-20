@@ -85,7 +85,18 @@
 
   "school_rule":"School Rules ",
 
-  "complaint_name": "Complaint"
+  "complaint_name": "Complaint",
+
+  "service_alerts" : "Alerts",
+  "service_announcements" : "Announcements",
+  "service_activities" : "Activities",
+  "service_evaluations" : "Evaluations",
+  "service_homeworks" : "Homeworks",
+  "service_grades" : "Grades",
+  "service_certification" : "Report Card",
+  "service_file_helper" : "File Helper",
+  "service_financial" : "Financial",
+  "service_top_students" : "Top Students"
 
 
 

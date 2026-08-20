@@ -12,4 +12,6 @@ class EmptyReportCardFailure extends Failure {
 abstract class ReportCardRepository {
   Future<Either<Failure, ReportCard>> getReportCard(
       {int? studentId, int? reportCardId});
+  Future<Either<Failure, int>> getUnreadCount({int? studentId});
+  Future<Either<Failure, Unit>> markAllAsRead({int? studentId});
 }

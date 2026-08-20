@@ -30,19 +30,30 @@ class NotificationType {
   static const String newExamSchedule = 'new_exam_schedule';
   static const String updateExamSchedule = 'update_exam_schedule';
   static const String payment = 'payment';
+
+  // جلاء (كشف علامات الفصل)
+  static const String reportCard = 'report_card'; // 👈 جديد
 }
 
 /// يستخرج نوع الإشعار الموحّد من الـ data.
 /// التنبيهات بالباك بترسل alert_type بدل type، فبنميّزها هون.
 String? resolveNotificationType(Map<String, dynamic> data) {
   final type = data['type']?.toString();
-  if (type != null && type.isNotEmpty) return type;
+  if (type != null && type.isNotEmpty) {
+    // 👇 لو الجلاء إجا كـ type مباشرة
+    if (type == 'report_card') return NotificationType.reportCard;
+    return type;
+  }
 
   final alertType = data['alert_type']?.toString();
   if (alertType != null && alertType.isNotEmpty) {
     // التنبيهات المالية: payment / payed → عدّاد paymentAlerts
     if (alertType == 'payment' || alertType == 'payed') {
       return NotificationType.payment;
+    }
+    // 👇 الجلاء لو إجا ضمن alert_type
+    if (alertType == 'report_card' || alertType == 'card') {
+      return NotificationType.reportCard;
     }
     // أي alert_type تاني (homework/absence/behavior/late/escape/general) → تنبيه عادي
     return NotificationType.alert;

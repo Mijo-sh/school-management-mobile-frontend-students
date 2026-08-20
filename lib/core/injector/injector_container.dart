@@ -123,7 +123,9 @@ import '../../features/report/data/data_sources/local/report_card_local_data_sou
 import '../../features/report/data/data_sources/remote/report_card_remote_data_source.dart';
 import '../../features/report/data/repositories/report_card_repository_impl.dart';
 import '../../features/report/domain/repositories/report_card_repository.dart';
+import '../../features/report/domain/use_cases/get_report_card_unread_count_usecase.dart';
 import '../../features/report/domain/use_cases/get_report_card_usecase.dart';
+import '../../features/report/domain/use_cases/mark_all_report_card_as_read_usecase.dart';
 import '../../features/report/presentation/manager/report_card_cubit.dart';
 import '../../features/subject/data/repositories/subjects_repository_impl.dart';
 import '../../features/subject/domain/repositories/get_practice_subjects_usecase.dart';
@@ -195,7 +197,9 @@ import '../../features/language/presentation/bloc/language_bloc.dart';
 import '../../features/theme/presentation/bloc/theme_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../network/api_endpoints.dart';
 import '../network/dio_auth_interceptor.dart';
+import '../network/dio_error_interceptor.dart';
 import '../network/network_info.dart';
 import 'package:get_it/get_it.dart';
 
@@ -226,20 +230,24 @@ Future<void> init() async {
   );
   di.registerLazySingleton(() => secureStorage);
 
-  // 3. تسجيل الـ Dio (يعتمد على الـ Interceptor الذي يعتمد على LocalDataSource)
-  // لذلك سنقوم بتسجيل الـ Interceptor أولاً
-  di.registerLazySingleton<DioAuthInterceptor>(() =>
-      DioAuthInterceptor(localDataSource: di()));
+  // 3. تسجيل الـ Interceptors أولاً
+  di.registerLazySingleton<DioAuthInterceptor>(
+        () => DioAuthInterceptor(localDataSource: di()),
+  );
+  di.registerLazySingleton<DioErrorInterceptor>(
+        () => DioErrorInterceptor(),
+  );
 
   di.registerLazySingleton<Dio>(() {
     final dioInstance = Dio(
       BaseOptions(
-        baseUrl: 'http://10.130.46.242:8000',
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        baseUrl: ApiEndpoints.baseUrl,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
       ),
     );
     dioInstance.interceptors.add(di<DioAuthInterceptor>());
+    dioInstance.interceptors.add(di<DioErrorInterceptor>());
     return dioInstance;
   });
 
@@ -251,6 +259,7 @@ Future<void> init() async {
   // ====================   Core   ====================
   di.registerLazySingleton<NetworkInfo>(() =>
       NetworkInfoImpl(connectionChecker: di()));
+  di.registerLazySingleton<SelectedChildHolder>(() => SelectedChildHolder());
 
   // ====================   Features   ====================
 
@@ -268,7 +277,7 @@ Future<void> init() async {
   di.registerLazySingleton<LoginUseCase>(() => LoginUseCase(di()));
   di.registerLazySingleton<SendOtpUsecase>(() => SendOtpUsecase(di()));
   di.registerLazySingleton<ResendOtpUsecase>(() => ResendOtpUsecase(di()));
-  di.registerLazySingleton<LogOutUsecase>(() => LogOutUsecase(di()));
+  di.registerLazySingleton<LogOutUsecase>(() => LogOutUsecase(di(), selectedChildHolder: di()));
 
   di.registerFactory(() =>
       AuthBloc(
@@ -394,7 +403,6 @@ Future<void> init() async {
       ));
 
 // 5. Helpers
-  di.registerLazySingleton<SelectedChildHolder>(() => SelectedChildHolder());
 
   di.registerLazySingleton<UnreadCountsStore>(() =>
       UnreadCountsStore(
@@ -407,6 +415,7 @@ Future<void> init() async {
         getHomeworksCount: di(),
         getMaterialsCount: di(),
         getPaymentAlertsCount: di(),
+        getReportCardCount: di(),
       ));
 
   // ********** Alerts **********
@@ -733,16 +742,21 @@ Future<void> init() async {
       getComplaints: di(), getOptions: di(), createComplaint: di(), deleteComplaint: di()));
 // ===================== Report Card (الجلاء) =====================
 
-// Cubit — param1 = studentId (int?) ، param2 = reportCardId (int?)
+// cubit — زيد البارامتر الجديد
   di.registerFactoryParam<ReportCardCubit, int?, int?>(
         (studentId, reportCardId) => ReportCardCubit(
       getReportCardUseCase: di(),
+      markReportCardAsReadUseCase: di(), // 👈 جديد
       studentId: studentId,
       reportCardId: reportCardId,
     ),
   );
 
+
 // UseCase
+  di.registerLazySingleton(() => GetReportCardUnreadCountUseCase(repository: di()));
+  di.registerLazySingleton(() => MarkAllReportCardAsReadUseCase(repository: di()));
+
   di.registerLazySingleton(
         () => GetReportCardUseCase(repository: di()),
   );

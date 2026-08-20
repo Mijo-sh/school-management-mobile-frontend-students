@@ -142,7 +142,9 @@ class _PhoneField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return TextField(
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: TextField(
         controller: controller,
         keyboardType: TextInputType.phone,
         maxLength: 9,
@@ -174,6 +176,7 @@ class _PhoneField extends StatelessWidget {
           prefixIconConstraints:
           const BoxConstraints(minWidth: 0, minHeight: 0),
         ),
+      ),
     );
   }
 }

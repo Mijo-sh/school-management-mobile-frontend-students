@@ -172,7 +172,6 @@ class HomeDrawerWidget extends StatelessWidget {
               context.push(RouteName.schoolRules);
             }),
 
-            // الشرط الصحيح داخل قائمة الـ children
             if (showChildOptions && child != null)
               _buildListTile(context, Icons.report_problem, "complaint_name".tr(context), () {
                 context.pop();

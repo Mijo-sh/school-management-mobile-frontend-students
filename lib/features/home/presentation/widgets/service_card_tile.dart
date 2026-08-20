@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:school_management_mobile_frontend_students/features/home/presentation/widgets/unread_badge.dart';
 import '../../../../core/injector/injector_container.dart';
+import '../../../../core/localization/app_localization.dart';
 import '../../../../core/routing/route_name.dart';
 import '../../../../core/routing/selected_child_holder.dart';
 import '../pages/services_page.dart';
@@ -34,6 +35,35 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
   int? get _liveStudentId =>
       di<SelectedChildHolder>().current?.id ?? widget.studentId;
 
+  /// يربط المعرّف المنطقي (title الإنجليزي) بمفتاح الترجمة.
+  /// المعرّف يبقى إنجليزي للمقارنات، والعرض بيجي مترجم.
+  String _titleKey(String title) {
+    switch (title) {
+      case 'Alerts':
+        return 'service_alerts';
+      case 'Announcements':
+        return 'service_announcements';
+      case 'Activities':
+        return 'service_activities';
+      case 'Evaluations':
+        return 'service_evaluations';
+      case 'Homeworks':
+        return 'service_homeworks';
+      case 'Grades':
+        return 'service_grades';
+      case 'Certification':
+        return 'service_certification';
+      case 'File Helper':
+        return 'service_file_helper';
+      case 'Financial':
+        return 'service_financial';
+      case 'Top Students':
+        return 'service_top_students';
+      default:
+        return title;
+    }
+  }
+
   Future<void> _onTap(BuildContext context) async {
     final card = widget.card;
     final studentId = _liveStudentId; // 👈 القيمة الحيّة، مش العالقة
@@ -50,15 +80,20 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
       await context.push(RouteName.homeworks, extra: studentId);
     } else if (card.title == 'Grades') {
       await context.push(RouteName.grades, extra: studentId);
-    } else if (card.title == 'Certification') {
-      await context.push(
-        RouteName.reportCardHub,
-        extra: studentId == null ? null : {'studentId': studentId},
-      );
     } else if (card.title == 'File Helper') {
       await context.push(RouteName.studyMaterials, extra: studentId);
-    } else if (card.title == 'Financial') { // 👈 جديد
+    } else if (card.title == 'Financial') {
       await context.push(ParentRouteName.paymentAlerts, extra: studentId);
+    } else if (card.title == 'Certification') {
+      // 👈 كان ناقص — كارد الجلاء بيفتح مباشرة مع الفصلين
+      await context.push(
+        RouteName.reportCard,
+        extra: {
+          'studentId': studentId,
+          'firstTermId': 1,
+          'secondTermId': 2,
+        },
+      );
     } else if (card.title == 'Top Students') {
       await context.push(
         RouteName.topStudents,
@@ -68,8 +103,7 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
           'secondTermId': 2,
         },
       );
-    }
-    else {
+    } else {
       return;
     }
 
@@ -120,7 +154,7 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
               child: Text(
-                card.title,
+                _titleKey(card.title).tr(context), // ✅ صار مترجم
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -144,7 +178,8 @@ class _ServiceCardTileState extends State<ServiceCardTile> {
       'Homeworks',
       'Grades',
       'File Helper',
-      'Financial'
+      'Financial',
+      'Certification', // 👈 جديد
     };
     if (!badgeCards.contains(card.title)) return tile;
 

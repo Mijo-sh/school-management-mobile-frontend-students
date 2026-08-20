@@ -224,7 +224,9 @@ class _OtpField extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    return  Stack(
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Stack(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -288,6 +290,7 @@ class _OtpField extends StatelessWidget {
             ),
           ),
         ],
+      ),
     );
   }
 }

@@ -13,11 +13,11 @@ class ReportCardResult {
 
   bool get isEmpty => reportCard == null;
 }
-
 abstract class ReportCardRemoteDataSource {
   Future<ReportCardResult> getReportCard({int? studentId, int? reportCardId});
+  Future<int> getUnreadCount({int? studentId});           // 👈 جديد
+  Future<void> markAllAsRead({int? studentId});           // 👈 جديد
 }
-
 class ReportCardRemoteDataSourceImpl extends BaseRemoteDataSource
     implements ReportCardRemoteDataSource {
   final Dio dio;
@@ -42,27 +42,76 @@ class ReportCardRemoteDataSourceImpl extends BaseRemoteDataSource
       final path = _path(studentId: studentId, reportCardId: reportCardId);
       debugPrint("🚀 [ReportCardRemote] جلب الجلاء | path: $path");
 
-      final response = await dio.get(path);
-      debugPrint("✅ [ReportCardRemote] رد الجلاء: ${response.data}");
+      try {
+        final response = await dio.get(path);
+        debugPrint("✅ [ReportCardRemote] رد الجلاء: ${response.data}");
 
-      final body = (response.data as Map<String, dynamic>?) ?? const {};
-      final message = body['message']?.toString() ?? '';
-      final data = body['data'];
+        final body = (response.data as Map<String, dynamic>?) ?? const {};
+        final message = body['message']?.toString() ?? '';
+        final data = body['data'];
 
-      // جلاء صالح فقط لو data كانت Map غير فارغة.
-      // (status:false، أو data:null، أو data:[] الفاضية → حالة فراغ برسالة)
-      final hasCard = data is Map<String, dynamic> && data.isNotEmpty;
-      if (!hasCard) {
+        final hasCard = data is Map<String, dynamic> && data.isNotEmpty;
+        if (!hasCard) {
+          return ReportCardResult(
+            reportCard: null,
+            message: message.isNotEmpty ? message : 'لا يوجد جلاء لعرضه',
+          );
+        }
+
         return ReportCardResult(
-          reportCard: null,
-          message: message.isNotEmpty ? message : 'لا يوجد جلاء لعرضه',
+          reportCard: ReportCardModel.fromJson(data),
+          message: message,
+        );
+      } on DioException catch (e) {
+        // 👇 الباك بيرجّع 404 مع status:false لما الجلاء مش منشور —
+        //    هاي حالة فراغ مش خطأ حقيقي.
+        final data = e.response?.data;
+        if (data is Map && data['status'] == false) {
+          return ReportCardResult(
+            reportCard: null,
+            message: data['message']?.toString() ?? 'لا يوجد جلاء لعرضه',
+          );
+        }
+        rethrow; // خطأ حقيقي (شبكة، 500، توكن...) → يكمل كـ ServerException
+      }
+    });
+  }
+  @override
+  Future<int> getUnreadCount({int? studentId}) async {
+    return execute(() async {
+      final response = await dio.get(
+        '/api/user/alerts/unread-count',
+        queryParameters: studentId != null ? {'student_id': studentId} : null,
+      );
+
+      final body = response.data;
+      if (body is Map && body['status'] == false) {
+        throw ServerException(
+          message: body['message']?.toString() ?? 'فشل جلب عدد الجلاءات غير المقروءة',
         );
       }
 
-      return ReportCardResult(
-        reportCard: ReportCardModel.fromJson(data),
-        message: message,
+      // 👇 الفرق: بناخد report_card من نفس رد التنبيهات
+      return (body['data']?['report_card'] as num?)?.toInt() ?? 0;
+    });
+  }
+
+  @override
+  Future<void> markAllAsRead({int? studentId}) async {
+    return execute(() async {
+      final response = await dio.post(
+        '/api/user/alerts/mark-all-read',
+        queryParameters: studentId != null
+            ? {'student_id': studentId, 'category': 'card'}   // 👈 category = card
+            : {'category': 'card'},
       );
+
+      final body = response.data;
+      if (body is Map && body['status'] == false) {
+        throw ServerException(
+          message: body['message']?.toString() ?? 'فشل تحديث حالة القراءة',
+        );
+      }
     });
   }
 }

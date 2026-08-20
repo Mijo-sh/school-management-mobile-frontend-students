@@ -57,4 +57,31 @@ class ReportCardRepositoryImpl implements ReportCardRepository {
       return Left(UnExpectedFailure());
     }
   }
+  @override
+  Future<Either<Failure, int>> getUnreadCount({int? studentId}) async {
+    try {
+      final result = await remoteDataSource.getUnreadCount(studentId: studentId);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return Left(UnExpectedFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> markAllAsRead({int? studentId}) async {
+    try {
+      await remoteDataSource.markAllAsRead(studentId: studentId);
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnexpectedException catch (e) {
+      return Left(UnExpectedFailure(e.message));
+    } catch (_) {
+      return Left(UnExpectedFailure());
+    }
+  }
 }

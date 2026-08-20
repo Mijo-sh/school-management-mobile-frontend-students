@@ -7,4 +7,5 @@ abstract class AppSessionRepository {
   Future<Either<Failure, Unit>> saveSession(AppSession session);
   Future<Either<Failure, Unit>> deleteSession();
   Future<Either<Failure, Unit>> completeOnboarding();
+  Future<Either<Failure, Unit>> clearAuthData();
 }

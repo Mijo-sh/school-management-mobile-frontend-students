@@ -35,69 +35,143 @@ class _SubjectAsset {
 // ===================== الصفحة =====================
 class ReportCardPage extends StatelessWidget {
   final int? studentId; // null → الطالب / قيمة → ولي الأمر
-  final int? reportCardId; // معرّف الفصل (1 أو 2)
+  final int firstTermId; // معرّف الفصل الأول
+  final int secondTermId; // معرّف الفصل الثاني
 
-  const ReportCardPage({super.key, this.studentId, this.reportCardId});
+  const ReportCardPage({
+    super.key,
+    this.studentId,
+    this.firstTermId = 1,
+    this.secondTermId = 2,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
+      // ننشئ cubit واحد ونبلّشو بالفصل الأول
       create: (_) => di<ReportCardCubit>(
         param1: studentId,
-        param2: reportCardId,
+        param2: firstTermId,
       )..loadReportCard(),
-      child: _ReportCardView(studentId: studentId),
+      child: _ReportCardView(
+        studentId: studentId,
+        firstTermId: firstTermId,
+        secondTermId: secondTermId,
+      ),
     );
   }
 }
 
-class _ReportCardView extends StatelessWidget {
+class _ReportCardView extends StatefulWidget {
   final int? studentId;
-  const _ReportCardView({this.studentId});
+  final int firstTermId;
+  final int secondTermId;
+
+  const _ReportCardView({
+    this.studentId,
+    required this.firstTermId,
+    required this.secondTermId,
+  });
+
+  @override
+  State<_ReportCardView> createState() => _ReportCardViewState();
+}
+
+class _ReportCardViewState extends State<_ReportCardView>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    context.read<ReportCardCubit>().loadReportCard(reportCardId: _currentTermId);
+  }
+
+  int get _currentTermId =>
+      _tabController.index == 0 ? widget.firstTermId : widget.secondTermId;
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-        backgroundColor: cs.surface,
-        body: Column(
-          children: [
-            const CurvedHeaderBar(
-              title: 'الجلاء',
-              backgroundImage: 'assets/images/background_login.jpg',
+      backgroundColor: cs.surface,
+      body: Column(
+        children: [
+          const CurvedHeaderBar(
+            title: 'الجلاء',
+            backgroundImage: 'assets/images/background_login.jpg',
+          ),
+          // ── التبويبات (نفس نمط صفحة الأوائل) ──
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(14),
             ),
-            Expanded(
-              child: BlocBuilder<ReportCardCubit, ReportCardState>(
-                builder: (context, state) {
-                  if (state is ReportCardLoading ||
-                      state is ReportCardInitial) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (state is ReportCardError) {
-                    return UnifiedErrorView(
-                      message: state.message,
-                      onRetry: () =>
-                          context.read<ReportCardCubit>().loadReportCard(),
-                    );
-                  }
-                  if (state is ReportCardEmpty) {
-                    // رسالة الباك حرفيًا، بقلب الصفحة، بدون زر إعادة
-                    return UnifiedEmptyView(
-                      icon: Icons.description_outlined,
-                      message: state.message,
-                    );
-                  }
-                  final reportCard = (state as ReportCardLoaded).reportCard;
-                  return _ReportCardBody(
-                    reportCard: reportCard,
-                    studentId: studentId,
-                  );
-                },
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: cs.primary,
+                borderRadius: BorderRadius.circular(14),
               ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelColor: cs.onPrimary,
+              unselectedLabelColor: cs.onSurface.withOpacity(0.6),
+              labelStyle:
+              const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              tabs: const [
+                Tab(text: 'الفصل الأول'),
+                Tab(text: 'الفصل الثاني'),
+              ],
             ),
-          ],
-        ),
+          ),
+          // ── المحتوى ──
+          Expanded(
+            child: BlocBuilder<ReportCardCubit, ReportCardState>(
+              builder: (context, state) {
+                if (state is ReportCardLoading || state is ReportCardInitial) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (state is ReportCardError) {
+                  return UnifiedErrorView(
+                    message: state.message,
+                    onRetry: () => context
+                        .read<ReportCardCubit>()
+                        .loadReportCard(reportCardId: _currentTermId),
+                  );
+                }
+                if (state is ReportCardEmpty) {
+                  // رسالة الباك حرفيًا، بقلب الصفحة، بدون زر إعادة
+                  return UnifiedEmptyView(
+                    icon: Icons.description_outlined,
+                    message: state.message,
+                  );
+                }
+                final reportCard = (state as ReportCardLoaded).reportCard;
+                return _ReportCardBody(
+                  reportCard: reportCard,
+                  studentId: widget.studentId,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -263,6 +337,7 @@ class _SummaryCard extends StatelessWidget {
     );
   }
 }
+
 class _AttendanceBadge extends StatelessWidget {
   final String status;
   const _AttendanceBadge({required this.status});
@@ -533,9 +608,8 @@ class _EvaluationsExpansionState extends State<_EvaluationsExpansion> {
           _open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           firstChild: const SizedBox(width: double.infinity),
           secondChild: Column(
-            children: widget.evaluations
-                .map((e) => _EvaluationRow(item: e))
-                .toList(),
+            children:
+            widget.evaluations.map((e) => _EvaluationRow(item: e)).toList(),
           ),
         ),
       ],

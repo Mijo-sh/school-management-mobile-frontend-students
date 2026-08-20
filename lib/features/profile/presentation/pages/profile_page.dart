@@ -46,6 +46,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   Widget build(BuildContext context) {
     printAllSharedPreferences();
+    printAllSecureData();
     final colorScheme = Theme
         .of(context)
         .colorScheme;

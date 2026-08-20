@@ -61,4 +61,13 @@ class AppSessionRepositoryImpl implements AppSessionRepository {
       return Left(CacheFailure());
     }
   }
+  @override
+  Future<Either<Failure, Unit>> clearAuthData() async {
+    try {
+      await localDataSource.clearAuthData();
+      return Right(unit);
+    } on CacheException {
+      return Left(CacheFailure());
+    }
+  }
 }

@@ -32,7 +32,6 @@ import '../../features/quiz/presentation/manager/practice_quizzes_cubit.dart';
 import '../../features/quiz/presentation/pages/quiz_view_screen.dart';
 import '../../features/quiz/presentation/pages/quizzes_list_screen.dart';
 import '../../features/quiz/presentation/pages/subjects_screen.dart';
-import '../../features/report/presentation/pages/report_card_hub_page.dart';
 import '../../features/report/presentation/pages/report_card_page.dart';
 import '../../features/subject/presentation/manager/subjects_cubit.dart';
 import '../../features/tasks/presentation/pages/random_tasks_page.dart';
@@ -44,13 +43,49 @@ import 'route_name.dart';
 import '../../features/home/presentation/pages/student_shell.dart'; // الـ Shell الجديد
 import '../../features/home/presentation/pages/services_page.dart'; // صفحة الخدمات
 import 'selected_child_holder.dart';
+/// وصول آمن لـ state.extra — يرجّع null بدل ما يرمي exception
+/// لو كان extra من نوع مختلف أو null.
+extension SafeExtra on GoRouterState {
+  T? extraAs<T>() => extra is T ? extra as T : null;
 
+  /// للحالات التي تحتاج Map بشكل خاص
+  Map<String, dynamic> extraMap() =>
+      extra is Map<String, dynamic> ? extra as Map<String, dynamic> : {};
+}
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
-
 class AppRouter {
   static final GoRouter appRouter = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: RouteName.splash,
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline_rounded, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text(
+                'الصفحة غير موجودة',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                state.uri.toString(),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => context.go(RouteName.homeShell),
+                child: const Text('العودة للرئيسية'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
     routes: [
       // 1. Splash
       GoRoute(
@@ -78,9 +113,13 @@ class AppRouter {
 
       GoRoute(
         path: RouteName.verification,
-        builder: (context, state) => VerificationPage(
-          phoneNumber: state.extra as String,
-        ),
+        builder: (context, state) {
+          final phone = state.extraAs<String>();
+          if (phone == null) {
+            return const LoginPage();
+          }
+          return VerificationPage(phoneNumber: phone);
+        },
       ),
       GoRoute(
         path: RouteName.randomTasks,
@@ -340,7 +379,8 @@ class AppRouter {
           final args = state.extra as Map<String, dynamic>?;
           return ReportCardPage(
             studentId: args?['studentId'] as int?,
-            reportCardId: args?['reportCardId'] as int?,
+            firstTermId: args?['firstTermId'] as int? ?? 1,
+            secondTermId: args?['secondTermId'] as int? ?? 2,
           );
         },
       ),
@@ -373,16 +413,7 @@ class AppRouter {
           );
         },
       ),
-      GoRoute(
-        path: RouteName.reportCardHub,
-        builder: (context, state) {
-          // extra == null → الطالب / Map فيها studentId → ولي الأمر
-          final args = state.extra as Map<String, dynamic>?;
-          return ReportCardHubPage(
-            studentId: args?['studentId'] as int?,
-          );
-        },
-      ),
+
       GoRoute(
         path: RouteName.topStudents,
         builder: (context, state) {

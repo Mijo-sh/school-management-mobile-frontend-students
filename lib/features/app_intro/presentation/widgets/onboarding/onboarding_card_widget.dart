@@ -19,6 +19,8 @@ class OnboardingCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.bottomCenter,
@@ -37,20 +39,24 @@ class OnboardingCardWidget extends StatelessWidget {
               padding: const EdgeInsets.only(
                 left: 25,
                 right: 25,
-                top: 25,
+                top: 40,
                 bottom: 70
               ),
               child: Column(
                 children: [
                   Text(
                     title,
-                    textAlign: TextAlign.center
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight:FontWeight.bold,color: Colors.black,fontSize: 20 ),
+                      
                   ),
                   const SizedBox(height: 15),
                   Text(
                     description,
-                    textAlign: TextAlign.center
-                  )
+                    textAlign: TextAlign.center,
+    style: TextStyle(fontWeight:FontWeight.bold,color: Colors.black,fontSize: 14 ),
+
+    )
                 ]
               )
             )

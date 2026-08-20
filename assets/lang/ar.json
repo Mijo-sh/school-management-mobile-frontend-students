@@ -81,6 +81,17 @@
 
   "school_rule":"قوانين المدرسة",
 
-  "complaint_name": "الشكاوي"
+  "complaint_name": "الشكاوي",
+
+  "service_alerts" : "التنبيهات",
+  "service_announcements" : "الإعلانات",
+  "service_activities" : "الأنشطة",
+  "service_evaluations" : "التقييمات",
+  "service_homeworks" : "الواجبات",
+  "service_grades" : "العلامات",
+  "service_certification" : "الجلاء",
+  "service_file_helper" : "الملفات المساعدة",
+  "service_financial" : "المالية",
+  "service_top_students" : "أوائل الصف"
 
 }

@@ -55,6 +55,8 @@ class _ChildShellPageState extends State<ChildShellPage> with WidgetsBindingObse
     // لما يرجع التطبيق من الخلفية للواجهة، نعيد جلب عدّادات هذا الابن.
     if (state == AppLifecycleState.resumed) {
       di<UnreadCountsStore>().loadAll(studentId: widget.child.id);
+      di<ExamUnreadStore>().loadCounts(studentId: widget.child.id);
+
     }
   }
 

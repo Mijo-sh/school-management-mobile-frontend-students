@@ -21,7 +21,7 @@ class SchedulesHubPage extends StatelessWidget {
       body: Column(
         children: [
           const SimbleCurvedHeader(
-            title: 'الكويزات',
+            title: 'البرامج',
           ),
           Expanded(
             child: SingleChildScrollView(

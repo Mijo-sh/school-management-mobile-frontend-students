@@ -10,6 +10,7 @@ import '../features/announcement/domain/use_cases/get_unread_announcements_count
 import '../features/evaluation/domain/use_cases/get_unread_evaluations_count_usecase.dart';
 import '../features/helper/domain/use_cases/get_unread_materials_count_usecase.dart';
 import '../features/payment_alerts/domain/use_cases/get_unread_payment_alerts_count_usecase.dart';
+import '../features/report/domain/use_cases/get_report_card_unread_count_usecase.dart';
 import 'notification_types.dart';
 import 'notifications/domain/repositories/push_notification_repository.dart';
 
@@ -21,7 +22,8 @@ class UnreadCountsStore extends ChangeNotifier {
   final GetUnreadHomeworksCountUseCase getHomeworksCount;
   final GetUnreadGradesCountUseCase getGradesCount;
   final GetUnreadMaterialsCountUseCase getMaterialsCount;
-  final GetUnreadPaymentAlertsCountUseCase getPaymentAlertsCount; // 👈 جديد
+  final GetUnreadPaymentAlertsCountUseCase getPaymentAlertsCount;
+  final GetReportCardUnreadCountUseCase getReportCardCount; // 👈 جديد
   final PushNotificationRepository pushNotificationRepository;
   UnreadCountsStore({
     required this.getAlertsCount,
@@ -33,6 +35,7 @@ class UnreadCountsStore extends ChangeNotifier {
     required this.getMaterialsCount,
     required this.pushNotificationRepository,
     required this.getPaymentAlertsCount,
+    required this.getReportCardCount, // 👈 جديد
   }) {
     _foregroundSub =
         pushNotificationRepository.onForegroundMessage.listen(_onMessage);
@@ -46,6 +49,7 @@ class UnreadCountsStore extends ChangeNotifier {
   int grades = 0;
   int materials = 0;
   int paymentAlerts = 0;
+  int reportCard = 0; // 👈 جديد
   bool isLoaded = false;
 
   int? _lastStudentId;
@@ -81,6 +85,9 @@ class UnreadCountsStore extends ChangeNotifier {
       case NotificationType.payment: // 👈 التنبيهات المالية
         _refreshPaymentAlerts();
         break;
+      case NotificationType.reportCard: // 👈 الجلاء
+        _refreshReportCard();
+        break;
       case NotificationType.newPracticeQuiz:
       // الكويز له QuizUnreadStore منفصل
         break;
@@ -100,8 +107,8 @@ class UnreadCountsStore extends ChangeNotifier {
       getHomeworksCount(studentId: studentId),
       getGradesCount(studentId: studentId),
       getMaterialsCount(),
-      getPaymentAlertsCount(studentId: studentId), // 👈 جديد — index 1
-
+      getPaymentAlertsCount(studentId: studentId),
+      getReportCardCount(studentId: studentId), // 👈 جديد — index 8
     ]);
 
     alerts = results[0].fold((_) => 0, (c) => c);
@@ -111,7 +118,8 @@ class UnreadCountsStore extends ChangeNotifier {
     homeworks = results[4].fold((_) => 0, (c) => c);
     grades = results[5].fold((_) => 0, (c) => c);
     materials = results[6].fold((_) => 0, (c) => c);
-    paymentAlerts = results[7].fold((_) => 0, (c) => c); // 👈 جديد
+    paymentAlerts = results[7].fold((_) => 0, (c) => c);
+    reportCard = results[8].fold((_) => 0, (c) => c); // 👈 جديد
 
     isLoaded = true;
     notifyListeners();
@@ -155,6 +163,10 @@ class UnreadCountsStore extends ChangeNotifier {
     final r = await getPaymentAlertsCount(studentId: _lastStudentId);
     r.fold((_) {}, (c) { paymentAlerts = c; notifyListeners(); });
   }
+  Future<void> _refreshReportCard() async { // 👈 جديد
+    final r = await getReportCardCount(studentId: _lastStudentId);
+    r.fold((_) {}, (c) { reportCard = c; notifyListeners(); });
+  }
   void clearAlerts() { alerts = 0; notifyListeners(); }
   void clearAnnouncements() { announcements = 0; notifyListeners(); }
   void clearActivities() { activities = 0; notifyListeners(); }
@@ -163,6 +175,7 @@ class UnreadCountsStore extends ChangeNotifier {
   void clearGrades() { grades = 0; notifyListeners(); }
   void clearMaterials() { materials = 0; notifyListeners(); }
   void clearPaymentAlerts() { paymentAlerts = 0; notifyListeners(); }
+  void clearReportCard() { reportCard = 0; notifyListeners(); } // 👈 جديد
   @override
   void dispose() {
     _foregroundSub?.cancel();

@@ -101,7 +101,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await remoteDataSource.logout();
       await localDataSource.clear();
-      await sessionRepository.deleteSession();
+      await sessionRepository.clearAuthData();
 
       return const Right(unit);
     } on ServerException catch (e) {
