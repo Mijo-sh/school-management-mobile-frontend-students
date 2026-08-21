@@ -20,7 +20,7 @@ class SplashLogoWidget extends StatelessWidget {
         child: SizedBox(
           height: 150,
           width: 150,
-          child: Center(child: Image.asset(ImagesManager.logo))
+          child: Center(child: Image.asset("assets/images/logo1.png"))
         )
       )
     );

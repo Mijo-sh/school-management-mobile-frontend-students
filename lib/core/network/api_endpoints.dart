@@ -1,5 +1,5 @@
 class ApiEndpoints {
-  static const baseUrl = 'http://10.141.38.242:8000';
+  static const baseUrl = 'https://school-management-system-api-production-6ecb.up.railway.app';
   // -------------------- Auth --------------------
   static const String sendCode = '/auth/loginMobile';
   static const String verifyCode = '/auth/verify-otp-mobile';

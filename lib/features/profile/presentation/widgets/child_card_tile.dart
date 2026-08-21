@@ -68,7 +68,7 @@ class ChildCardTile extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        _InfoLine(label: 'المدرسة', value: "الغد المشرق", size: 15),
+                        _InfoLine(label: 'المدرسة', value: "مدرسة الاجيال", size: 15),
                         const SizedBox(height: 15),
                         _InfoLine(label: 'الصف', value: child.gradeName, size: 15),
                         const SizedBox(height: 15),

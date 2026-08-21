@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:school_management_mobile_frontend_students/features/alerts/data/data_sources/local/alert_local_data_source.dart';
 import 'package:school_management_mobile_frontend_students/features/auth/data/data_sources/local_data_source/auth_local_data_source.dart';
@@ -248,8 +249,18 @@ Future<void> init() async {
     );
     dioInstance.interceptors.add(di<DioAuthInterceptor>());
     dioInstance.interceptors.add(di<DioErrorInterceptor>());
+    dioInstance.interceptors.add(LogInterceptor(
+      request: true,
+      requestHeader: true,
+      requestBody: true,     // 👈 شو عم يتبعت
+      responseHeader: false,
+      responseBody: true,    // 👈 شو عم يرجع
+      error: true,
+      logPrint: (obj) => debugPrint(obj.toString()),
+    ));
     return dioInstance;
   });
+
 
   di.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
   di.registerLazySingleton<FirebaseMessaging>(() => FirebaseMessaging.instance);

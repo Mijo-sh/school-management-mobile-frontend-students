@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/assets_manager/images_manager.dart';
 import '../../../../core/routing/route_name.dart';
 import '../manager/auth_bloc.dart';
+import '../widgets/auth_image_icon.dart';
 import '../widgets/auth_widget.dart';
 import '../widgets/verify_widget.dart';
 import 'verification_page.dart';
@@ -91,7 +92,7 @@ class _LoginPageState extends State<LoginPage>
                 slide: _slide,
                 children: [
                   const Spacer(flex: 1),
-                   Image.asset(ImagesManager.logo),
+                  AuthBadgeLogIN(image: "assets/images/logo1.png",) ,
                   const SizedBox(height: 20),
                   AuthHeaderText(
                     title: 'أهلاً بك',

@@ -207,7 +207,7 @@ class _AlertsViewState extends State<_AlertsView> {
                         ),
                         child: Image.asset(
                           'assets/images/${alert.type.name}.png',
-                          errorBuilder: (_, __, ___) => Icon(Icons.notifications_rounded, color: cs.primary),
+                          errorBuilder: (_, __, ___) => Image.asset("assets/images/alerts.png"),
                         ),
                       );
 

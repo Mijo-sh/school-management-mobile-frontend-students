@@ -20,7 +20,6 @@ class AlertRemoteDataSourceImpl extends BaseRemoteDataSource implements AlertRem
         ? '/api/user/my-alerts'
         : '/api/user/child-alerts/$studentId';
   }
-
   @override
   Future<PaginatedModel<AlertItemModel>> getAlerts({int? studentId, int page = 1}) async {
     return execute(() async {
@@ -29,13 +28,27 @@ class AlertRemoteDataSourceImpl extends BaseRemoteDataSource implements AlertRem
         queryParameters: {'page': page},
       );
 
-      // 3. تمرير نوع البيانات للـ Constructor الموحد PaginatedModel<AlertItemModel> 👇
-      return PaginatedModel<AlertItemModel>.fromJson(
-        response.data as Map<String, dynamic>,
-            (itemJson) => AlertItemModel.fromJson(itemJson as Map<String, dynamic>),
+      final responseData = response.data;
+
+      // إذا كان السيرفر يرجع الـ data مباشرة كقائمة ضمن الـ JSON
+      List<dynamic> itemsList = [];
+      if (responseData is Map && responseData['data'] is List) {
+        itemsList = responseData['data'];
+      } else if (responseData is List) {
+        itemsList = responseData;
+      }
+
+      final alerts = itemsList
+          .map((e) => AlertItemModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      // إرجاعها داخل PaginatedModel لحين توافقها مع الـ UI لديك
+      return PaginatedModel<AlertItemModel>(
+        items: alerts,
+        currentPage: page,
+        lastPage: 1, // بما أن البيانات رجعت دفعة واحدة كقائمة
       );
     });
-
   }
 
   @override

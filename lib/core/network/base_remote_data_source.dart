@@ -25,7 +25,8 @@ abstract class BaseRemoteDataSource {
       //    ما عدنا نستخدم e.error.toString() لأنها رسالة تقنية للمستخدم
       throw ServerException(message: serverMessage ?? 'حدث خطأ في الخادم');
     } catch (e) {
-      throw UnexpectedException(message: e.toString());
-    }
+  // لا تقم بعرض e.toString() للمستخدم أبداً لأنها تقنية
+  throw const UnexpectedException(message: 'حدث خطأ غير متوقع، يجدر المحاولة لاحقاً');
+  }
   }
 }
